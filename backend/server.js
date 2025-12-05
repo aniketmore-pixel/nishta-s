@@ -1,3 +1,7 @@
+
+
+const electricityRoutes = require("./routes/electricity.js");
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -16,6 +20,9 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 app.locals.supabase = supabase;
+
+
+
 
 // ---------------------
 // JWT Auth Middleware
@@ -78,6 +85,9 @@ app.get("/api/dashboard", authMiddleware, (req, res) => {
     user: req.user,
   });
 });
+
+// Electricity verification route
+app.use("/api", electricityRoutes);
 
 app.get("/api/user/profile", authMiddleware, async (req, res) => {
   try {

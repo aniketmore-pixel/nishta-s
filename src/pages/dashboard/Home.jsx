@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  TrendingUp, 
-  CheckCircle2, 
+import {
+  TrendingUp,
+  CheckCircle2,
   AlertCircle,
   ArrowRight,
   Shield
@@ -128,6 +128,14 @@ const Home = () => {
                 </Button>
               </Link>
             </div>
+
+            <Link to="/dashboard/apply">
+              <Button className="w-full mt-3 bg-primary text-white hover:bg-primary/90">
+                Apply for Loan
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+
 
             {/* Loan Application Status */}
             <div className="p-4 rounded-lg border bg-card">

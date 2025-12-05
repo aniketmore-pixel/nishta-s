@@ -62,6 +62,7 @@ import Benefits from "./pages/dashboard/Benefits";
 import TrackApplication from "./pages/dashboard/TrackApplication";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoutes"; // <- import your wrapper
+import ApplyLoan from "./pages/ApplyLoan";
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,7 @@ const App = () => (
             <Route path="eligibility" element={<LoanEligibility />} />
             <Route path="benefits" element={<Benefits />} />
             <Route path="track" element={<TrackApplication />} />
+            <Route path="apply" element={<ApplyLoan />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

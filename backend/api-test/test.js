@@ -1,35 +1,33 @@
-const fs = require("fs");
 const axios = require("axios");
-const crypto = require("crypto");
+const fs = require("fs");
 
-async function testCasteCertificateAPI() {
+const URL = "https://sandbox.api-setu.in/certificate/v3/upenergy/elebl";
+
+async function testUPenergyAPI() {
   try {
-    const txnId = crypto.randomUUID();
-    const consentId = crypto.randomUUID();
-
-    const body = {
-      txnId,
-      format: "pdf",  // ✅ raw PDF
+    const payload = {
+      txnId: crypto.randomUUID(),
+      format: "xml",
       certificateParameters: {
-        ApplicationNo: "1234",
-        CertificateID: "123456"
+        AccountNo: "ACTUAL_VALID_ACCOUNT",
+        Discom: "PuVVNL"
       },
       consentArtifact: {
         consent: {
-          consentId,
+          consentId: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
-          dataConsumer: { id: "sandbox" },
-          dataProvider: { id: "sandbox" },
-          purpose: { description: "testing" },
+          dataConsumer: { id: "in.gov.sandbox" },
+          dataProvider: { id: "UPENERGY" },
+          purpose: { description: "Testing UP Energy Bill API" },
           user: {
-            idType: "id",
-            idNumber: "123",
-            mobile: "9999999999",
-            email: "test@test.com"
+            idType: "mobile",
+            idNumber: "9988776655",
+            mobile: "9988776655",
+            email: "test@email.com"
           },
-          data: { id: "test" },
+          data: { id: "energy" },
           permission: {
-            access: "VIEW",
+            access: "READ",
             dateRange: {
               from: new Date().toISOString(),
               to: new Date().toISOString()
@@ -37,30 +35,30 @@ async function testCasteCertificateAPI() {
             frequency: { unit: "once", value: 1, repeats: 0 }
           }
         },
-        signature: { signature: "dummy" }
-      }
-    };
-
-    const response = await axios.post(
-      "https://sandbox.api-setu.in/certificate/v3/edistrictup/ctcer",
-      body,
-      {
-        responseType: "arraybuffer",   // ✅ important for binary PDF
-        headers: {
-          "Content-Type": "application/json",
-          "X-APISETU-APIKEY": "demokey123456ABCD789",
-          "X-APISETU-CLIENTID": "in.gov.sandbox"
+        signature: {
+          signature: "BASE64_ENCODED_SIGNATURE"
         }
       }
-    );
+    };
+    
 
-    // Save PDF directly
-    fs.writeFileSync("certificate.pdf", Buffer.from(response.data));
-    console.log("✅ PDF saved as certificate.pdf");
+    const res = await axios.post(URL, payload, {
+      responseType: "text", // because UP returns XML text, NOT PDF
+      headers: {
+        Accept: "application/xml",
+        "Content-Type": "application/json",
+        "X-APISETU-APIKEY": "demokey123456ABCD789",
+        "X-APISETU-CLIENTID": "in.gov.sandbox"
+      }
+    });
 
+    fs.writeFileSync("up_energy_response.xml", res.data);
+
+    console.log("✔ XML saved to up_energy_response.xml");
   } catch (err) {
-    console.error("❌ API call error:", err.response?.data || err.message);
+    console.error("❌ API Error:");
+    console.log(err.response?.data || err.message);
   }
 }
 
-testCasteCertificateAPI();
+testUPenergyAPI();
