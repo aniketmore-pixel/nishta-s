@@ -206,7 +206,7 @@ const Home = () => {
               <Progress value={profileCompletion} className="h-2" />
               <Link to="/dashboard/profile">
                 <Button variant="outline" size="sm" className="w-full mt-3">
-                  Complete Profile
+                  Caste Verification
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
