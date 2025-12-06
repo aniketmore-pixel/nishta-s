@@ -76,7 +76,7 @@ const nbcfdcSchemes = [
 
 const Benefits = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pt-20">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2">Benefits & Government Schemes</h1>
         <p className="text-muted-foreground">Explore financial schemes and investment options for your benefit</p>

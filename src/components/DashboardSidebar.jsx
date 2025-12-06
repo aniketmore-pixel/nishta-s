@@ -28,6 +28,7 @@ export function DashboardSidebar() {
     <Sidebar
       className={collapsed ? "w-14" : "w-60"}
       collapsible="icon"
+      style={{ marginTop: "64px" }}   // ⭐ FIX: Sidebar no longer hides behind 16px header
     >
       <SidebarTrigger className="m-2 self-end" />
 

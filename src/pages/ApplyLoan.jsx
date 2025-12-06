@@ -286,7 +286,7 @@ const ApplyLoan = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-8 max-w-6xl pt-20">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2">Complete Your Profile 🚀</h1>
         <p className="text-muted-foreground">Fill all sections to maximize your credit score and loan eligibility</p>

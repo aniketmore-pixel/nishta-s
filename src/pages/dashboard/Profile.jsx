@@ -1319,7 +1319,7 @@ const Profile = () => {
      Render
      --------------------------- */
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-start py-10 px-4">
+    <div className="min-h-screen bg-gray-50 flex justify-center items-start py-10 px-4 pt-20">
       <div className="w-full max-w-5xl bg-white rounded-xl shadow-md overflow-hidden">
         
         {/* HEADER */}
