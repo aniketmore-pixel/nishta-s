@@ -47,13 +47,13 @@ export const Header = () => {
             </div>
           </Link>
 
-      {/* Nav */}
+      {/* Nav
       <nav className="hidden md:flex items-center gap-6">
         <Link className="text-sm font-medium hover:text-primary" to="/">Home</Link>
         <Link className="text-sm font-medium hover:text-primary" to="/schemes">Schemes</Link>
         <Link className="text-sm font-medium hover:text-primary" to="/about">About</Link>
         <Link className="text-sm font-medium hover:text-primary" to="/contact">Contact</Link>
-      </nav>
+      </nav> */}
 
       {/* Right Section */}
       <div className="flex items-center gap-3">

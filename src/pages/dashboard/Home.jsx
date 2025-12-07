@@ -287,7 +287,7 @@ const Home = () => {
             </div>
 
 
-            Apply for Loan Button
+            {/* Apply for Loan Button */}
             {userStatus?.eligibility_status ? (
               <Link to="/dashboard/apply">
                 <Button className="w-full mt-3 bg-primary text-white hover:bg-primary/90">

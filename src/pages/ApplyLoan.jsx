@@ -100,7 +100,7 @@ const profileSections = [
   { id: "schemes", title: "Enrolled Schemes", icon: FileText, completed: false },
   { id: "loan", title: "Apply for Loan", icon: DollarSign, completed: false },
 ];
-
+ 
 const ApplyLoan = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -483,41 +483,29 @@ const ApplyLoan = () => {
     });
   };
 
-  const handleFetchRationDetails = () => {
-    if (rationNumber.length !== 10) {
-      setRationError("Ration Card Number must be exactly 10 digits.");
-      return;
-    }
+  const handleFetchRationDetails = async () => {
+    try {
+      setFetchingRation(true);
 
-    setRationError("");
-    setFetchingRation(true);
+      const res = await fetch(`http://localhost:5010/api/ration/${rationNumber}`);
+      const data = await res.json();
 
-    setTimeout(() => {
-      setRationDetails({
-        householdSize: 5,
-        dependentCount: 3,
-        earnersCount: 2,
-        dependencyRatio: "0.6",
-        rationCategory: "APL",
-      });
+      if (!data.success) {
+        setRationError(data.message);
+        setFetchingRation(false);
+        return;
+      }
 
-      setFetchingRation(false);
+      setRationDetails(data.rationDetails);
+      setSeccDetails(data.seccDetails);
       setRationFetched(true);
-    }, 1500);
-  };
-
-  const handleFetchSECC = async () => {
-    setFetchingSECC(true);
-
-    setTimeout(() => {
-      setSeccDetails({
-        category: "Poor Household",
-        score: 42
-      });
-
-      setFetchingSECC(false);
-      setSeccFetched(true);
-    }, 1500);
+      setSeccFetched(true); // Optional, depends on workflow
+      setFetchingRation(false);
+    } catch (err) {
+      console.error(err);
+      setRationError("Failed to fetch details.");
+      setFetchingRation(false);
+    }
   };
 
   return (
@@ -1241,7 +1229,7 @@ const ApplyLoan = () => {
               </div>
             )}
 
-            {/* RATION CARD */}
+            {/* RATION CARD
             {selectedSection === "House Hold and Ration Card Detail" && (
               <div className="space-y-6">
                 <div className="rounded-lg">
@@ -1398,9 +1386,137 @@ const ApplyLoan = () => {
                   )}
                 </div>
               </div>
+            )} */}
+            {selectedSection === "House Hold and Ration Card Detail" && (
+              <div className="space-y-6">
+                <div className="rounded-lg">
+
+                  {/* HEADER */}
+                  <div className="flex items-start gap-3 mb-4">
+                    <Shield className="h-6 w-6 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-primary mb-1">Ration Card</h3>
+                    </div>
+                  </div>
+
+                  {/* IF FETCHED */}
+                  {rationFetched ? (
+                    <div className="space-y-6">
+
+                      {/* SUCCESS BOX */}
+                      <div className="p-4 bg-muted border border-success rounded-lg">
+                        <div className="flex items-center gap-2 text-success mb-2">
+                          <CheckCircle2 className="h-5 w-5" />
+                          <span className="font-semibold">Ration Details Fetched Successfully</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Your ration card details have been successfully fetched.
+                          {digilockerConnected && " DigiLocker connected."}
+                        </p>
+                      </div>
+
+                      {/* ⭐ RATION DETAILS (READ-ONLY) */}
+                      <div className="p-4 space-y-4">
+
+                        <h4 className="font-semibold text-primary text-md">Household Details</h4>
+
+                        <div className="grid md:grid-cols-2 gap-4">
+
+                          <div>
+                            <Label>Household Size</Label>
+                            <Input value={rationDetails.householdSize} readOnly className="bg-gray-100" />
+                          </div>
+
+                          <div>
+                            <Label>Household Dependents</Label>
+                            <Input value={rationDetails.dependentCount} readOnly className="bg-gray-100" />
+                          </div>
+
+                          <div>
+                            <Label>Earners Count</Label>
+                            <Input value={rationDetails.earnersCount} readOnly className="bg-gray-100" />
+                          </div>
+
+                          <div>
+                            <Label>Dependency Ratio</Label>
+                            <Input value={rationDetails.dependencyRatio} readOnly className="bg-gray-100" />
+                          </div>
+
+                          <div>
+                            <Label>Ration Card Category</Label>
+                            <Input value={rationDetails.rationCategory} readOnly className="bg-gray-100" />
+                          </div>
+
+                        </div>
+                      </div>
+
+                      {/* ⭐ SECC CATEGORY SECTION */}
+                      <div className="p-4 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-semibold text-primary text-md">SECC Category</h4>
+
+                          {!seccFetched && (
+                            <Button
+                              variant="default"
+                              onClick={handleFetchSECC}
+                              disabled={fetchingSECC}
+                            >
+                              {fetchingSECC ? "Fetching..." : "Fetch SECC"}
+                            </Button>
+                          )}
+                        </div>
+
+                        {seccFetched && (
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>SECC Category</Label>
+                              <Input value={seccDetails.category} readOnly className="bg-gray-100" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+                  ) : (
+                    /* BEFORE FETCH */
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Ration Card Number *</Label>
+
+                        <Input
+                          type="text"
+                          placeholder="Enter 12-digit Ration Card Number"
+                          maxLength={12}
+                          value={rationNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").trim(); // remove spaces + non-digits
+                            setRationNumber(val);
+                          }}
+                        />
+
+                        {/* Error message */}
+                        {rationError && (
+                          <p className="text-red-500 text-sm">{rationError}</p>
+                        )}
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <Button
+                          type="button"
+                          variant="default"
+                          onClick={handleFetchRationDetails}
+                          disabled={fetchingRation}
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          {fetchingRation ? "Fetching..." : "Fetch Ration Details"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
-           
             {/* ENROLLED SCHEMES SECTION */}
             {selectedSection === "schemes" && (
               <Form {...enrolledSchemesForm}>
@@ -1503,7 +1619,7 @@ const ApplyLoan = () => {
               </Form>
             )}
 
-             {/* LOAN */}
+            {/* LOAN */}
             {selectedSection === "loan" && (
               <Form {...loanForm}>
                 <form
