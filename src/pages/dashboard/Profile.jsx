@@ -1522,6 +1522,7 @@ const Profile = () => {
               ref={(el) => {
                 const r = register("casteCertificateNumber").ref;
                 if (typeof r === "function") r(el);
+                
                 else if (r && typeof r === "object") r.current = el;
                 domRefs.casteCertificateNumber.current = el;
               }}

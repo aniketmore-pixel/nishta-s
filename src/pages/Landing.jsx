@@ -31,7 +31,7 @@ const Landing = () => {
                 </Button>
               </Link>
               <Link to="/about">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-2 border-primary-foreground text-primary-foreground bg-primary-foreground text-primary hover:bg-primary-foreground/20">
                   Learn More
                 </Button>
               </Link>

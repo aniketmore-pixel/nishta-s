@@ -1,6 +1,8 @@
 
 
+const rationRoutes = require("./routes/ration");
 const electricityRoutes = require("./routes/electricity.js");
+const eligibilityRoutes = require("./routes/eligibility.js")
 
 require("dotenv").config();
 const express = require("express");
@@ -243,6 +245,9 @@ app.post("/api/submit-profile", async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
+app.use("/api", eligibilityRoutes);
+app.use("/api", rationRoutes);
 
 
 // ---------------------

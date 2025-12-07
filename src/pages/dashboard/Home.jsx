@@ -11,16 +11,22 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, ArrowRight, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const Home = () => {
-  const profileCompletion = 75;
 
   // These should ideally come from backend
   const creditScore = 68; // 0–100 from backend
   const safeLoanAmount = 300000; // from backend (INR)
   const estimatedIncome = 600000; // from backend (INR)
 
+
+
+
+
+
   // 0–100 -> 300–900
+  const [userStatus, setUserStatus] = React.useState(null);
   const normalized = Math.min(100, Math.max(0, creditScore ?? 0));
   const cibilScore = Math.round(300 + (normalized / 100) * 600); // 300–900
 
@@ -46,6 +52,35 @@ const Home = () => {
     // TODO: call backend to refresh credit score, safeLoanAmount, estimatedIncome
     console.log("Update score clicked");
   };
+
+
+  React.useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const aadhaarNumber = localStorage.getItem("aadhar_no");
+        if (!aadhaarNumber) return;
+
+        const res = await fetch(`http://localhost:5000/api/eligible-beneficiary/${aadhaarNumber}`);
+        const data = await res.json();
+
+        // Only set userStatus if backend returns success
+        if (data.success) {
+          setUserStatus(data); // data has eligibility_status
+        } else {
+          setUserStatus(null);
+        }
+
+      } catch (error) {
+        console.error("Error fetching caste verification:", error);
+      }
+    };
+
+    fetchStatus();
+  }, []);
+
+
+  const profileCompletion = userStatus?.verified ? 100 : 75;
+
 
   return (
     <div className="container mx-auto px-4 py-8 pt-20">
@@ -79,50 +114,50 @@ const Home = () => {
           </CardHeader>
 
           <CardContent className="space-y-6">
-           {/* CIBIL-style TRUE Semicircle Gauge */}
-<div className="flex flex-col items-center">
+            {/* CIBIL-style TRUE Semicircle Gauge */}
+            <div className="flex flex-col items-center">
 
-  {/* Outer Semicircle */}
-  <div className="relative w-48 h-24 overflow-hidden">
-    <div
-      className="absolute w-48 h-48 rounded-full"
-      style={{
-        background:
-          "conic-gradient(#ef4444 0deg, #f97316 90deg, #eab308 180deg, #22c55e 270deg, #22c55e 360deg)",
-        top: "0",
-        left: "0",
-      }}
-    ></div>
+              {/* Outer Semicircle */}
+              <div className="relative w-48 h-24 overflow-hidden">
+                <div
+                  className="absolute w-48 h-48 rounded-full"
+                  style={{
+                    background:
+                      "conic-gradient(#ef4444 0deg, #f97316 90deg, #eab308 180deg, #22c55e 270deg, #22c55e 360deg)",
+                    top: "0",
+                    left: "0",
+                  }}
+                ></div>
 
-    {/* White masking for inner ring */}
-    <div className="absolute w-40 h-40 rounded-full bg-white top-4 left-4"></div>
+                {/* White masking for inner ring */}
+                <div className="absolute w-40 h-40 rounded-full bg-white top-4 left-4"></div>
 
-    {/* Needle */}
-    <div
-      className="absolute w-1 bg-blue-600 h-20 origin-bottom"
-      style={{
-        left: "50%",
-        bottom: "-2px",
-        transform: `translateX(-50%) rotate(${angle}deg)`,
-      }}
-    ></div>
+                {/* Needle */}
+                <div
+                  className="absolute w-1 bg-blue-600 h-20 origin-bottom"
+                  style={{
+                    left: "50%",
+                    bottom: "-2px",
+                    transform: `translateX(-50%) rotate(${angle}deg)`,
+                  }}
+                ></div>
 
-    {/* Needle base circle */}
-    <div className="absolute w-4 h-4 bg-blue-600 rounded-full left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2"></div>
-  </div>
+                {/* Needle base circle */}
+                <div className="absolute w-4 h-4 bg-blue-600 rounded-full left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2"></div>
+              </div>
 
-  {/* Score range labels */}
-  <div className="mt-2 flex justify-between w-48 text-xs text-muted-foreground px-1">
-    <span>300</span>
-    <span>900</span>
-  </div>
+              {/* Score range labels */}
+              <div className="mt-2 flex justify-between w-48 text-xs text-muted-foreground px-1">
+                <span>300</span>
+                <span>900</span>
+              </div>
 
-  {/* Score text */}
-  <div className="mt-3 text-center">
-    <div className="text-4xl font-bold text-primary">{cibilScore}</div>
-    <div className="text-xs text-muted-foreground">out of 900</div>
-  </div>
-</div>
+              {/* Score text */}
+              <div className="mt-3 text-center">
+                <div className="text-4xl font-bold text-primary">{cibilScore}</div>
+                <div className="text-xs text-muted-foreground">out of 900</div>
+              </div>
+            </div>
 
 
             {/* Safe Loan Amount & Estimated Income */}
@@ -190,34 +225,81 @@ const Home = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Profile Completion */}
-            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+            {/* Profile Completion Section */}
+            <div className={`p-4 bg-primary/5 rounded-lg border border-primary/10 ${userStatus ? "opacity-60 pointer-events-none" : ""}`}>
               <div className="flex items-start gap-3 mb-3">
                 <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <div className="text-sm flex-1">
                   <p className="font-medium mb-1">
-                    Profile Completion: {profileCompletion}%
+                    Caste Verification {userStatus ? 100 : profileCompletion}%
                   </p>
+
                   <p className="text-muted-foreground text-xs mb-2">
-                    Complete remaining sections to unlock higher loan amounts
+                    {userStatus
+                      ? "Your caste certificate is already verified"
+                      : "Complete caste verification to proceed"}
                   </p>
                 </div>
+
+                {userStatus && (
+                  <Badge className="bg-green-500 text-white">Verified</Badge>
+                )}
               </div>
-              <Progress value={profileCompletion} className="h-2" />
-              <Link to="/dashboard/profile">
-                <Button variant="outline" size="sm" className="w-full mt-3">
-                  Caste Verification
+
+              <Progress
+                value={userStatus ? 100 : profileCompletion}
+                className="h-2"
+              />
+
+              {/* Button Logic */}
+              {userStatus ? (
+                <Button variant="secondary" size="sm" className="w-full mt-3" disabled>
+                  Caste Verified
+                </Button>
+              ) : (
+                <Link to="/dashboard/profile">
+                  <Button variant="outline" size="sm" className="w-full mt-3">
+                    Caste Verification
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
+            </div>
+
+
+            Apply for Loan Button
+            {userStatus?.eligibility_status ? (
+              <Link to="/dashboard/apply">
+                <Button className="w-full mt-3 bg-primary text-white hover:bg-primary/90">
+                  Apply for Loan
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-            </div>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      className="w-full mt-3 bg-gray-300 text-gray-600 cursor-not-allowed"
+                      disabled
+                    >
+                      Apply for Loan
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="bg-primary text-white">
+                  Please complete caste verification to apply
+                </TooltipContent>
+              </Tooltip>
+            )}
 
-            <Link to="/dashboard/benefits">
+            {/* <Link to="/dashboard/benefits">
               <Button className="w-full mt-3 bg-primary text-white hover:bg-primary/90">
                 Apply for Loan
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </Link>
+            </Link> */}
 
             {/* Loan Application Status */}
             <div className="p-4 rounded-lg border bg-card">
