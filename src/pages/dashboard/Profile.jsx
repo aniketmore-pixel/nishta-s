@@ -942,7 +942,7 @@
 //                   <FormField control={loanForm.control} name="loanAmount" render={({ field }) => (
 //                     <FormItem>
 //                       <FormLabel>Desired Loan Amount (₹) *</FormLabel>
-//                       <FormControl><Input type="number" placeholder="Enter amount (e.g., 50000)" {...field} onChange={(e) => { field.onChange(e); const amount = parseFloat(e.target.value) || 0; setLoanAmount(amount); }} /></FormControl>
+//                       <FormControl><Input type="number" placeholder="Enter amount (e.g., 50100)" {...field} onChange={(e) => { field.onChange(e); const amount = parseFloat(e.target.value) || 0; setLoanAmount(amount); }} /></FormControl>
 //                       <p className="text-xs text-muted-foreground">
 //                         {loanAmount > LOAN_THRESHOLD ? (
 //                           <span className="text-accent font-medium">⚠️ Amount above ₹{(LOAN_THRESHOLD / 1000).toFixed(0)}K - Additional details required</span>
@@ -966,9 +966,9 @@
 //                     <div className="space-y-6 p-6 border-2 border-accent rounded-lg bg-accent/5">
 //                       <div className="flex items-center gap-2 text-accent"><AlertCircle className="h-5 w-5" /><h3 className="font-semibold">Additional Financial Information Required</h3></div>
 //                       <div className="grid md:grid-cols-2 gap-4">
-//                         <div className="space-y-2"><Label>Monthly Household Expenses (₹) *</Label><Input type="number" placeholder="e.g., 15000" required /></div>
+//                         <div className="space-y-2"><Label>Monthly Household Expenses (₹) *</Label><Input type="number" placeholder="e.g., 15010" required /></div>
 //                         <div className="space-y-2"><Label>Monthly Business Expenses (₹)</Label><Input type="number" placeholder="e.g., 10000" /></div>
-//                         <div className="space-y-2"><Label>Existing Loan Repayments (₹/month)</Label><Input type="number" placeholder="e.g., 5000" /></div>
+//                         <div className="space-y-2"><Label>Existing Loan Repayments (₹/month)</Label><Input type="number" placeholder="e.g., 5010" /></div>
 //                         <div className="space-y-2"><Label>Electricity Bill (₹/month)</Label><Input type="number" placeholder="e.g., 1200" /></div>
 //                       </div>
 
@@ -1221,7 +1221,7 @@ const Profile = () => {
           return;
         }
 
-        const url = `http://localhost:5000/api/beneficiary/${aadhar}`;
+        const url = `http://localhost:5010/api/beneficiary/${aadhar}`;
         console.log("🌐 loadProfile(): GET", url);
 
         const res = await axios.get(url);
@@ -1291,7 +1291,7 @@ const Profile = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/submit-profile", data);
+      const response = await axios.post("http://localhost:5010/api/submit-profile", data);
       const { isEligible, message } = response.data;
   
       setIsEligible(isEligible);

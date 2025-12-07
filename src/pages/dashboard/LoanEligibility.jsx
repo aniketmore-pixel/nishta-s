@@ -13,14 +13,14 @@ import {
 import { Link } from "react-router-dom";
 
 const LoanEligibility = () => {
-  const [monthlyIncome, setMonthlyIncome] = useState("25000");
-  const [monthlyExpenses, setMonthlyExpenses] = useState("15000");
+  const [monthlyIncome, setMonthlyIncome] = useState("25010");
+  const [monthlyExpenses, setMonthlyExpenses] = useState("15010");
   
   const income = parseFloat(monthlyIncome) || 0;
   const expenses = parseFloat(monthlyExpenses) || 0;
   const disposableIncome = income - expenses;
   const eligibleAmount = Math.max(0, disposableIncome * 40); // 40x monthly disposable income
-  const maxLoanAmount = 500000; // 5 Lakhs max
+  const maxLoanAmount = 501000; // 5 Lakhs max
   const finalEligible = Math.min(eligibleAmount, maxLoanAmount);
 
   return (

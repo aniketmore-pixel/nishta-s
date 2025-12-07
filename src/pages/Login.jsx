@@ -27,7 +27,7 @@ const Login = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post("http://localhost:5010/api/auth/login", {
         aadhar_no: aadhaar.toString(), // ensure string
         password: password,
       });
@@ -62,7 +62,7 @@ const Login = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/verify-otp", {
+      const res = await axios.post("http://localhost:5010/api/auth/verify-otp", {
         aadhar_no: aadhaar.toString(), // ensure string
         otp: otp,
       });

@@ -26,7 +26,8 @@ import {
   Shield,
   Link as LinkIcon,
   Upload,
-  Zap
+  Zap,
+  BadgeCheck
 } from "lucide-react";
 
 // small helpers
@@ -47,6 +48,8 @@ const incomeDetailsSchema = z.object({
   secondaryIncome: z.string().optional(),
   householdMembers: z.string().min(1, "This field is required"),
 });
+
+
 
 const bankDetailsSchema = z.object({
   accountHolderName: z.string().min(2, "Account holder name is required"),
@@ -78,13 +81,32 @@ const loanApplicationSchema = z.object({
   purpose: z.string().min(10, "Please provide purpose (minimum 10 characters)"),
 });
 
+const enrolledSchemesSchema = z.object({
+  enrolledMgnrega: z.enum(["Yes", "No"], {
+    required_error: "Please select an option",
+  }),
+  enrolledPmUjjwala: z.enum(["Yes", "No"], {
+    required_error: "Please select an option",
+  }),
+  enrolledPmJay: z.enum(["Yes", "No"], {
+    required_error: "Please select an option",
+  }),
+  enrolledPensionScheme: z.enum(["Yes", "No"], {
+    required_error: "Please select an option",
+  }),
+});
+
+
+
 // Modified profile sections (Basic Details removed)
 const profileSections = [
-  { id: "income", title: "Income Details", icon: Wallet, completed: false },
+  { id: "income", title: "Income & Asset Details", icon: Wallet, completed: false },
   { id: "bank", title: "Bank Details", icon: CreditCard, completed: false },
   { id: "expenses", title: "Expenses & Commodities", icon: HomeIcon, completed: false },
   { id: "House Hold and Ration Card Detail", title: "House Hold and Ration Card Detail", icon: FileText, completed: false },
   { id: "loan", title: "Apply for Loan", icon: DollarSign, completed: false },
+ // ⭐ NEW SECTION ADDED HERE
+   { id: "schemes", title: "Enrolled Schemes", icon: FileText, completed: false }, // NEW
 ];
 
 const ApplyLoan = () => {
@@ -169,6 +191,28 @@ const ApplyLoan = () => {
     },
   });
 
+ const enrolledSchemesForm = useForm({
+  resolver: zodResolver(enrolledSchemesSchema),
+  defaultValues: {
+    enrolledMgnrega: "",
+    enrolledPmUjjwala: "",
+    enrolledPmJay: "",
+    enrolledPensionScheme: "",
+  },
+});
+
+
+
+const onEnrolledSchemesSubmit = (values) => {
+  console.log("Enrolled schemes data:", values);
+  // TODO: call your backend API here
+};
+
+
+
+
+  
+
   const [loanAmount, setLoanAmount] = useState(0);
   const [showExpensesForLoan, setShowExpensesForLoan] = useState(false);
   const LOAN_THRESHOLD = 100000; // ₹1 Lakh
@@ -177,9 +221,9 @@ const ApplyLoan = () => {
   // const onBasicSubmit = (data) => { /* ... removed */ };
 
   const onIncomeSubmit = (data) => {
-    console.log("Income Details:", data);
+    console.log("Income Income & Asset Details:", data);
     if (!completedSections.includes("income")) setCompletedSections([...completedSections, "income"]);
-    toast({ title: "Income Details Saved", description: "Your income information has been saved successfully.", variant: "success" });
+    toast({ title: "Income Income & Asset Details Saved", description: "Your income information has been saved successfully.", variant: "success" });
   };
 
   const onBankSubmit = (data) => {
@@ -215,7 +259,7 @@ const ApplyLoan = () => {
     });
 
     try {
-      const res = await fetch("http://localhost:5000/api/verify/electricity", {
+      const res = await fetch("http://localhost:5010/api/verify/electricity", {
         method: "POST",
         body: formData,
       });
@@ -393,75 +437,168 @@ const ApplyLoan = () => {
 
             {/* BASIC SECTION (removed) */}
 
-            {/* INCOME SECTION */}
-            {selectedSection === "income" && (
-              <Form {...incomeForm}>
-                <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-6">
-                  <FormField control={incomeForm.control} name="employmentType" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Employment Type *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select employment type" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Self-employed">Self-employed</SelectItem>
-                          <SelectItem value="Salaried">Salaried</SelectItem>
-                          <SelectItem value="Labour">Labour</SelectItem>
-                          <SelectItem value="Unemployed">Unemployed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+           {/* INCOME SECTION */}
+{selectedSection === "income" && (
+  <Form {...incomeForm}>
+    <form
+      onSubmit={incomeForm.handleSubmit(onIncomeSubmit)}
+      className="space-y-6"
+    >
+      {/* Occupation */}
+      <FormField
+        control={incomeForm.control}
+        name="employmentType"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Occupation *</FormLabel>
+            <Select
+              onValueChange={field.onChange}
+              defaultValue={field.value}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select employment type" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Self-employed">Self-employed</SelectItem>
+                <SelectItem value="Salaried">Salaried</SelectItem>
+                <SelectItem value="Labour">Labour</SelectItem>
+                <SelectItem value="Unemployed">Unemployed</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-                  <FormField control={incomeForm.control} name="primaryIncomeSource" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Primary Income Source *</FormLabel>
-                      <FormControl><Input placeholder="e.g., Small Business, Daily Wage" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+      {/* Primary Income Source */}
+      <FormField
+        control={incomeForm.control}
+        name="primaryIncomeSource"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Primary Income Source *</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="e.g., Small Business, Daily Wage"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <FormField control={incomeForm.control} name="monthlyIncome" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monthly Income (₹) *</FormLabel>
-                        <FormControl><Input type="number" placeholder="Enter amount" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={incomeForm.control} name="secondaryIncome" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Secondary Income (₹) (Optional)</FormLabel>
-                        <FormControl><Input type="number" placeholder="Enter amount" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
+      {/* Monthly & Annual Income */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <FormField
+          control={incomeForm.control}
+          name="monthlyIncome"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Monthly Income (₹) *</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-                  <FormField control={incomeForm.control} name="householdMembers" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Household Members Contributing to Income *</FormLabel>
-                      <FormControl><Input type="number" placeholder="Enter number" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+        <FormField
+          control={incomeForm.control}
+          name="annualIncome"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Annual Income (₹)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Enter annual income"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">💡 Tip: Providing accurate income details helps improve your credit score accuracy and loan eligibility.</p>
-                  </div>
+      {/* Asset Count with + / − */}
+      <FormField
+        control={incomeForm.control}
+        name="assetCount"
+        render={({ field }) => {
+          const value = Number(field.value) || 0;
 
-                  <div className="space-y-2">
-                    <Label>Upload Income Proof (Optional)</Label>
-                    <Input type="file" accept=".pdf,.jpg,.jpeg,.png" />
-                    <p className="text-xs text-muted-foreground">Upload payslip, sale receipt, or income certificate</p>
-                  </div>
+          const handleChange = (newVal) => {
+            if (newVal < 0) newVal = 0;
+            field.onChange(newVal);
+          };
 
-                  <Button type="submit" className="w-full">Save Income Details</Button>
-                </form>
-              </Form>
-            )}
+          return (
+            <FormItem>
+              <FormLabel>Asset Count</FormLabel>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleChange(value - 1)}
+                >
+                  -
+                </Button>
+
+                <div className="min-w-[3rem] text-center text-sm font-medium">
+                  {value}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleChange(value + 1)}
+                >
+                  +
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total count of significant assets (e.g., land, shop, vehicle, etc.).
+              </p>
+              <FormMessage />
+            </FormItem>
+          );
+        }}
+      />
+
+      {/* Tip */}
+      <div className="p-4 bg-muted rounded-lg">
+        <p className="text-sm text-muted-foreground">
+          💡 Tip: Providing accurate Income & Asset Details helps improve your
+          credit score accuracy and loan eligibility.
+        </p>
+      </div>
+
+      {/* Upload Income Proof */}
+      <div className="space-y-2">
+        <Label>Upload Income Proof (Optional)</Label>
+        <Input type="file" accept=".pdf,.jpg,.jpeg,.png" />
+        <p className="text-xs text-muted-foreground">
+          Upload payslip, sale receipt, or income certificate
+        </p>
+      </div>
+
+      <Button type="submit" className="w-full">
+        Save Income & Asset Details
+      </Button>
+    </form>
+  </Form>
+)}
 
             {/* BANK SECTION */}
             {selectedSection === "bank" && (
@@ -947,7 +1084,7 @@ const ApplyLoan = () => {
                   <FormField control={loanForm.control} name="loanAmount" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Desired Loan Amount (₹) *</FormLabel>
-                      <FormControl><Input type="number" placeholder="Enter amount (e.g., 50000)" {...field} onChange={(e) => { field.onChange(e); const amount = parseFloat(e.target.value) || 0; setLoanAmount(amount); }} /></FormControl>
+                      <FormControl><Input type="number" placeholder="Enter amount (e.g., 50100)" {...field} onChange={(e) => { field.onChange(e); const amount = parseFloat(e.target.value) || 0; setLoanAmount(amount); }} /></FormControl>
                       <p className="text-xs text-muted-foreground">
                         {loanAmount > LOAN_THRESHOLD ? (
                           <span className="text-accent font-medium">⚠️ Amount above ₹{(LOAN_THRESHOLD / 1000).toFixed(0)}K - Additional details required</span>
@@ -971,9 +1108,9 @@ const ApplyLoan = () => {
                     <div className="space-y-6 p-6 border-2 border-accent rounded-lg bg-accent/5">
                       <div className="flex items-center gap-2 text-accent"><AlertCircle className="h-5 w-5" /><h3 className="font-semibold">Additional Financial Information Required</h3></div>
                       <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2"><Label>Monthly Household Expenses (₹) *</Label><Input type="number" placeholder="e.g., 15000" required /></div>
+                        <div className="space-y-2"><Label>Monthly Household Expenses (₹) *</Label><Input type="number" placeholder="e.g., 15010" required /></div>
                         <div className="space-y-2"><Label>Monthly Business Expenses (₹)</Label><Input type="number" placeholder="e.g., 10000" /></div>
-                        <div className="space-y-2"><Label>Existing Loan Repayments (₹/month)</Label><Input type="number" placeholder="e.g., 5000" /></div>
+                        <div className="space-y-2"><Label>Existing Loan Repayments (₹/month)</Label><Input type="number" placeholder="e.g., 5010" /></div>
                         <div className="space-y-2"><Label>Electricity Bill (₹/month)</Label><Input type="number" placeholder="e.g., 1200" /></div>
                       </div>
 
@@ -996,6 +1133,109 @@ const ApplyLoan = () => {
                 </form>
               </Form>
             )}
+
+           {/* ENROLLED SCHEMES SECTION */}
+{selectedSection === "schemes" && (
+  <Form {...enrolledSchemesForm}>
+    <form
+      onSubmit={enrolledSchemesForm.handleSubmit(onEnrolledSchemesSubmit)}
+      className="space-y-6"
+    >
+      <FormField
+        control={enrolledSchemesForm.control}
+        name="enrolledMgnrega"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Enrolled in MGNREGA *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Yes / No" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={enrolledSchemesForm.control}
+        name="enrolledPmUjjwala"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Enrolled in PM Ujjwala Yojana *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Yes / No" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={enrolledSchemesForm.control}
+        name="enrolledPmJay"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Enrolled in PM-JAY (Ayushman Bharat) *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Yes / No" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={enrolledSchemesForm.control}
+        name="enrolledPensionScheme"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Enrolled in Pension Scheme *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Yes / No" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Yes">Yes</SelectItem>
+                <SelectItem value="No">No</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <Button type="submit" className="w-full">
+        Save Enrolled Schemes
+      </Button>
+    </form>
+  </Form>
+)}
+
           </CardContent>
         </Card>
       </div>
