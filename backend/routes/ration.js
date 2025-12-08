@@ -88,4 +88,66 @@ router.get("/ration/:rationNumber", async (req, res) => {
     }
 });
 
+router.post("/ration/update", async (req, res) => {
+    const { loan_application_id, aadhaar_no, ration_card_number } = req.body;
+
+    if (!loan_application_id || !aadhaar_no || !ration_card_number) {
+        return res.status(400).json({ message: "Missing fields" });
+    }
+
+    try {
+        // 🔥 Update only ration_card_number using composite primary key
+        const { data, error } = await supabase
+            .from("loan_applications")
+            .update({ ration_card_number })
+            .eq("loan_application_id", loan_application_id)
+            .eq("aadhaar_no", aadhaar_no)
+            .select();
+
+        // Supabase error handling
+        if (error) {
+            console.error("Supabase update error:", error);
+            return res.status(500).json({ message: "Update failed", error });
+        }
+
+        // No row updated (composite key not found)
+        if (!data || data.length === 0) {
+            return res.status(404).json({ message: "Loan application not found" });
+        }
+
+        return res.status(200).json({
+            message: "Ration card updated successfully",
+            data: data[0],
+        });
+
+    } catch (err) {
+        console.error("Unexpected error updating ration:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.post("/ration/get", async (req, res) => {
+    const { loan_application_id, aadhaar_no } = req.body;
+
+    try {
+        const { data, error } = await supabase
+            .from("loan_applications")
+            .select("ration_card_number")
+            .eq("loan_application_id", loan_application_id)
+            .eq("aadhaar_no", aadhaar_no)
+            .single();
+
+        if (error) {
+            return res.status(404).json({ message: "Not found" });
+        }
+
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
+
+
 module.exports = router;

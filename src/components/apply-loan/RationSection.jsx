@@ -1,8 +1,9 @@
-// src/components/apply-loan/RationSection.jsx
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { useEffect } from "react";
 
 export const RationSection = ({
   rationFetched,
@@ -10,16 +11,98 @@ export const RationSection = ({
   digilockerConnected,
   seccFetched,
   seccDetails,
-  fetchingSECC, // currently unused, but kept for future extension
   fetchingRation,
   rationNumber,
   setRationNumber,
   rationError,
   handleFetchRationDetails,
 }) => {
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    const loan_application_id = localStorage.getItem("loan_application_id");
+    const aadhaar_no = localStorage.getItem("aadhar_no");
+
+    if (!loan_application_id || !aadhaar_no) return;
+
+    const fetchSavedRation = async () => {
+      const res = await fetch("http://localhost:5010/api/ration/get", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loan_application_id, aadhaar_no }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (data?.ration_card_number) {
+        setRationNumber(data.ration_card_number);
+        // handleFetchRationDetails();
+      }
+    };
+
+    fetchSavedRation();
+  }, []);
+
+
+  useEffect(() => {
+    if (!rationFetched || !rationNumber) return;
+
+    const loan_application_id = localStorage.getItem("loan_application_id");
+    const aadhaar_no = localStorage.getItem("aadhar_no");
+
+    if (!loan_application_id || !aadhaar_no) {
+      setSaveMessage("Missing application details in local storage.");
+      return;
+    }
+
+    handleSaveRationToDB();
+  }, [rationFetched]);
+
+  // NEW FUNCTION → POST to backend after fetch success
+  const handleSaveRationToDB = async () => {
+    try {
+      setSaving(true);
+      setSaveMessage("");
+
+      const loan_application_id = localStorage.getItem("loan_application_id");
+      const aadhaar_no = localStorage.getItem("aadhar_no");
+
+      if (!loan_application_id || !aadhaar_no) {
+        setSaveMessage("Missing application details in local storage.");
+        return;
+      }
+
+      const res = await fetch("http://localhost:5010/api/ration/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loan_application_id,
+          aadhaar_no,
+          ration_card_number: rationNumber,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setSaveMessage(data.message || "Failed to save ration card.");
+      } else {
+        setSaveMessage("Ration card saved successfully!");
+      }
+    } catch (err) {
+      console.error(err);
+      setSaveMessage("Error saving ration details.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg">
+
         {/* HEADER */}
         <div className="flex items-start gap-3 mb-4">
           <Shield className="h-6 w-6 text-primary mt-0.5" />
@@ -55,71 +138,48 @@ export const RationSection = ({
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>Household Size</Label>
-                  <Input
-                    value={rationDetails.householdSize}
-                    readOnly
-                    className="bg-gray-100"
-                  />
+                  <Input value={rationDetails.householdSize} readOnly className="bg-gray-100" />
                 </div>
 
                 <div>
                   <Label>Household Dependents</Label>
-                  <Input
-                    value={rationDetails.dependentCount}
-                    readOnly
-                    className="bg-gray-100"
-                  />
+                  <Input value={rationDetails.dependentCount} readOnly className="bg-gray-100" />
                 </div>
 
                 <div>
                   <Label>Earners Count</Label>
-                  <Input
-                    value={rationDetails.earnersCount}
-                    readOnly
-                    className="bg-gray-100"
-                  />
+                  <Input value={rationDetails.earnersCount} readOnly className="bg-gray-100" />
                 </div>
 
                 <div>
                   <Label>Dependency Ratio</Label>
-                  <Input
-                    value={rationDetails.dependencyRatio}
-                    readOnly
-                    className="bg-gray-100"
-                  />
+                  <Input value={rationDetails.dependencyRatio} readOnly className="bg-gray-100" />
                 </div>
 
                 <div>
                   <Label>Ration Card Category</Label>
-                  <Input
-                    value={rationDetails.rationCategory}
-                    readOnly
-                    className="bg-gray-100"
-                  />
+                  <Input value={rationDetails.rationCategory} readOnly className="bg-gray-100" />
                 </div>
               </div>
             </div>
 
             {/* SECC SECTION */}
             <div className="p-4 space-y-4">
-              <h4 className="font-semibold text-primary text-md">
-                SECC Category
-              </h4>
+              <h4 className="font-semibold text-primary text-md">SECC Category</h4>
 
               {seccFetched && (
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label>SECC Category</Label>
-                    <Input
-                      value={seccDetails.category}
-                      readOnly
-                      className="bg-gray-100"
-                    />
+                    <Input value={seccDetails.category} readOnly className="bg-gray-100" />
                   </div>
-                  {/* If later you want score, add here */}
                 </div>
               )}
             </div>
+
+            {saveMessage && (
+              <p className="text-sm text-center text-primary">{saveMessage}</p>
+            )}
           </div>
         ) : (
           // BEFORE FETCH
@@ -138,22 +198,18 @@ export const RationSection = ({
                 }}
               />
 
-              {rationError && (
-                <p className="text-red-500 text-sm">{rationError}</p>
-              )}
+              {rationError && <p className="text-red-500 text-sm">{rationError}</p>}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant="default"
-                onClick={handleFetchRationDetails}
-                disabled={fetchingRation}
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                {fetchingRation ? "Fetching..." : "Fetch Ration Details"}
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="default"
+              onClick={handleFetchRationDetails}
+              disabled={fetchingRation}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              {fetchingRation ? "Fetching..." : "Fetch Ration Details"}
+            </Button>
           </div>
         )}
       </div>

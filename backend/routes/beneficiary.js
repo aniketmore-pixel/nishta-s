@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+const supabase = require("../supabaseClient");
 
 router.post("/:aadhar_no", async (req, res) => {
   try {
@@ -97,6 +98,49 @@ router.post("/:aadhar_no", async (req, res) => {
   }
 });
 
+router.put("/status", async (req, res) => {
+  try {
+    const {
+      loan_application_id,
+      aadhaar_no,
+      mgnrega,
+      pm_ujjwala_yojana,
+      pm_jay,
+      enrolled_in_pension_scheme,
+    } = req.body;
 
+    // Update using Supabase
+    const { data, error } = await supabase
+      .from("beneficiary_status")
+      .update({
+        mgnrega,
+        pm_ujjwala_yojana,
+        pm_jay,
+        enrolled_in_pension_scheme,
+      })
+      .eq("loan_application_id", loan_application_id)
+      .eq("aadhaar_no", aadhaar_no)
+      .select()
+      .maybeSingle(); // ensures it returns exactly one row
+
+    if (error) {
+      console.log("Supabase Error:", error);
+      return res.status(500).json({ message: "Supabase error", error });
+    }
+
+    if (!data) {
+      return res.status(404).json({ message: "Record not found" });
+    }
+
+    res.json({
+      message: "Beneficiary status updated successfully",
+      data,
+    });
+
+  } catch (error) {
+    console.log("Server Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 module.exports = router;

@@ -356,7 +356,9 @@ const mobileRoutes = require("./routes/mobile.js");
 app.use("/api/mobile", mobileRoutes);
 
 const beneficiaryRoutes = require("./routes/beneficiary.js");
+const enrolled_scheme = require("./routes/enrolled_scheme.js");
 app.use("/api/beneficiary", beneficiaryRoutes);
+app.use("/api", enrolled_scheme);
 
 app.use("/api/lpg", lpgRoutes);
 
