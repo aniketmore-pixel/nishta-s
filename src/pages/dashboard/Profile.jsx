@@ -1050,6 +1050,8 @@ const StyledInput = forwardRef(({ label, type = "text", error, name, ...rest }, 
 });
 StyledInput.displayName = "StyledInput";
 
+
+
 /* ----------------------------
    StyledTextarea - forwards ref
    ---------------------------- */
@@ -1106,6 +1108,7 @@ const basicProfileSchema = z.object({
    Main Profile component
    ----------------------------- */
 const Profile = () => {
+
   const [loading, setLoading] = useState(true);
 
   const form = useForm({
@@ -1127,13 +1130,17 @@ const Profile = () => {
     mode: "onTouched",
   });
 
-  const { register, handleSubmit, reset, watch, getValues, formState } = form;
+  const { register, handleSubmit, setValue, reset, watch, getValues, formState } = form;
   const { errors } = formState;
+
+  const casteRegister = register("casteCertificateNumber");
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+
 
   // --- PROGRESS LOGIC START ---
   // Watch all fields to calculate progress
-  const allValues = watch(); 
-  
+  const allValues = watch();
+
   const calculateProgress = () => {
     const fieldsToCheck = [
       "fullName", "aadhaar", "age", "gender", "mobile",
@@ -1183,6 +1190,101 @@ const Profile = () => {
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // useEffect(() => {
+  //   const fetchCasteCertificate = async () => {
+  //     const aadhar_no = localStorage.getItem("aadhar_no");
+  //     if (!aadhar_no) return;
+
+  //     const res = await axios.get(
+  //       `http://localhost:5010/api/eligible-beneficiary/caste/${aadhar_no}`
+  //     );
+
+  //     if (res.data.success && res.data.data?.caste_certificate_number) {
+  //       setValue("casteCertificateNumber", res.data.data.caste_certificate_number);
+  //       if (domRefs.casteCertificateNumber.current) {
+  //         domRefs.casteCertificateNumber.current.value =
+  //           res.data.data.caste_certificate_number;
+  //       }
+  //     }
+  //   };
+
+  //   fetchCasteCertificate();
+  // }, [setValue]);
+
+  // useEffect(() => {
+  //   const fetchCasteCertificate = async () => {
+  //     const aadhar_no = localStorage.getItem("aadhar_no");
+  //     if (!aadhar_no) return;
+
+  //     try {
+  //       const res = await axios.get(
+  //         `http://localhost:5010/api/eligible-beneficiary/caste/${aadhar_no}`
+  //       );
+
+  //       const data = res.data?.data;
+
+  //       // If record exists → autofill & disable submit
+  //       if (res.data.success && data?.caste_certificate_number) {
+  //         setValue("casteCertificateNumber", data.caste_certificate_number);
+
+  //         if (domRefs.casteCertificateNumber.current) {
+  //           domRefs.casteCertificateNumber.current.value =
+  //             data.caste_certificate_number;
+  //         }
+
+  //         setAlreadySubmitted(true); // 🔥 Disable submit button here
+  //       }
+  //     } catch (err) {
+  //       console.error("Error fetching caste certificate:", err);
+  //     }
+  //   };
+
+  //   fetchCasteCertificate();
+  // }, [setValue]);
+
+  useEffect(() => {
+    const loadProfileWithCaste = async () => {
+      const aadhar = localStorage.getItem("aadhar_no");
+      if (!aadhar) return;
+  
+      try {
+        // Fetch caste first
+        const casteRes = await axios.get(`http://localhost:5010/api/eligible-beneficiary/caste/${aadhar}`);
+        const casteNumber = casteRes.data?.data?.caste_certificate_number || "";
+  
+        // Fetch full profile
+        const profileRes = await axios.get(`http://localhost:5010/api/beneficiary/${aadhar}`);
+        const data = profileRes.data || {};
+  
+        // Reset the form once with all values
+        reset({
+          fullName: data.full_name || "",
+          age: data.age !== undefined ? String(data.age) : "",
+          gender: (data.gender || "male").toLowerCase(),
+          aadhaar: aadhar,
+          mobile: data.phone_no || data.mobile || "",
+          address: data.address || "",
+          district: data.district || "",
+          state: data.state || "",
+          occupation: data.occupation || "",
+          yearlyIncome: data.income_yearly !== undefined ? String(data.income_yearly) : "",
+          casteCertificateNumber: casteNumber,
+          registrationDate: data.registration_date || new Date().toISOString().split("T")[0],
+        });
+  
+        if (casteNumber) setAlreadySubmitted(true); // disable submit if already present
+      } catch (err) {
+        console.error("Error loading profile with caste:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    loadProfileWithCaste();
+  }, [reset]);
+  
+
 
   /* ---------------------------
      Debugger: log DOM element values every second for 5 seconds
@@ -1282,22 +1384,22 @@ const Profile = () => {
   /* ---------------------------
      Submit handler
      --------------------------- */
-  const navigate = useNavigate(); 
-  
+  const navigate = useNavigate();
+
   const [modalMessage, setModalMessage] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [isEligible, setIsEligible] = useState(false);
-  
+
   const onSubmit = async (data) => {
     setLoading(true);
     try {
       const response = await axios.post("http://localhost:5010/api/submit-profile", data);
       const { isEligible, message } = response.data;
-  
+
       setIsEligible(isEligible);
       setModalMessage(message);
       setShowModal(true);
-  
+
       if (isEligible) {
         setTimeout(() => navigate("/dashboard"), 2300);
       }
@@ -1321,7 +1423,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center items-start py-10 px-4 pt-20">
       <div className="w-full max-w-5xl bg-white rounded-xl shadow-md overflow-hidden">
-        
+
         {/* HEADER */}
         <div className="bg-white p-6 flex justify-between items-center border-b border-navy-500">
           <div className="flex items-center gap-3 text-navy-900">
@@ -1338,10 +1440,9 @@ const Profile = () => {
             <span className="text-sm font-bold text-navy-900">{progressPercentage}%</span>
           </div>
           <div className="w-full bg-gray-300 rounded-full h-2.5">
-            <div 
-              className={`h-2.5 rounded-full transition-all duration-500 ease-out ${
-                progressPercentage === 100 ? "bg-green-600" : "bg-blue-900"
-              }`} 
+            <div
+              className={`h-2.5 rounded-full transition-all duration-500 ease-out ${progressPercentage === 100 ? "bg-green-600" : "bg-blue-900"
+                }`}
               style={{ width: `${progressPercentage}%` }}
             ></div>
           </div>
@@ -1487,18 +1588,34 @@ const Profile = () => {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <StyledInput
-                label="Occupation"
-                name="occupation"
-                error={errors.occupation?.message}
-                {...register("occupation")}
-                ref={(el) => {
-                  const r = register("occupation").ref;
-                  if (typeof r === "function") r(el);
-                  else if (r && typeof r === "object") r.current = el;
-                  domRefs.occupation.current = el;
-                }}
-              />
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Occupation</label>
+
+                <select
+                  {...register("occupation")}
+                  ref={(el) => {
+                    const r = register("occupation").ref;
+                    if (typeof r === "function") r(el);
+                    else if (r && typeof r === "object") r.current = el;
+                    domRefs.occupation.current = el;
+                  }}
+                  className="border rounded-md p-2"
+                >
+                  <option value="">Select Occupation</option>
+                  <option value="Unemployed">Unemployed</option>
+                  <option value="Salaried_Private">Salaried Private</option>
+                  <option value="Retired">Retired</option>
+                  <option value="Student">Student</option>
+                  <option value="Farmer">Farmer</option>
+                  <option value="Salaried_Govt">Salaried Govt</option>
+                  <option value="Self_Employed">Self Employed</option>
+                </select>
+
+                {errors.occupation?.message && (
+                  <p className="text-red-500 text-sm">{errors.occupation.message}</p>
+                )}
+              </div>
+
               <StyledInput
                 label="Yearly Income (₹)"
                 type="number"
@@ -1518,22 +1635,29 @@ const Profile = () => {
               label="Caste Certificate Number"
               name="casteCertificateNumber"
               error={errors.casteCertificateNumber?.message}
-              {...register("casteCertificateNumber")}
+              {...casteRegister}
               ref={(el) => {
-                const r = register("casteCertificateNumber").ref;
-                if (typeof r === "function") r(el);
-                
-                else if (r && typeof r === "object") r.current = el;
+                casteRegister.ref(el); // correct RHF ref forwarding
                 domRefs.casteCertificateNumber.current = el;
               }}
             />
 
-            <button
+            {/* <button
               type="submit"
               className="w-full border border-navy-500 text-navy-900 font-semibold py-3 rounded-md"
             >
               Submit Profile
+            </button> */}
+
+            <button
+              type="submit"
+              disabled={alreadySubmitted}
+              className={`w-full border border-navy-500 text-navy-900 font-semibold py-3 rounded-md
+    ${alreadySubmitted ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              {alreadySubmitted ? "Already Submitted" : "Submit Profile"}
             </button>
+
           </form>
         </div>
       </div>

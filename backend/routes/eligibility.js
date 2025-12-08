@@ -61,4 +61,36 @@ router.post("/verify", async (req, res) => {
     });
 });
 
+// get the caste certificate number
+router.get("/eligible-beneficiary/caste/:aadhar_no", async (req, res) => {
+    try {
+        const { aadhar_no } = req.params;
+
+        const { data, error } = await supabase
+            .from("eligible_beneficiary")
+            .select("caste_certificate_number")
+            .eq("aadhar_no", aadhar_no)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Fetch caste cert error:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to fetch caste certificate",
+            });
+        }
+
+        return res.json({
+            success: true,
+            data,
+        });
+    } catch (err) {
+        console.error("Server Error:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+});
+
 module.exports = router;

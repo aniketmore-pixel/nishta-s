@@ -1,9 +1,7 @@
-
-
 const rationRoutes = require("./routes/ration");
 const electricityRoutes = require("./routes/electricity.js");
 const lpgRoutes = require("./routes/lpg.js");
-const eligibilityRoutes = require("./routes/eligibility.js")
+const eligibilityRoutes = require("./routes/eligibility.js");
 
 require("dotenv").config();
 const express = require("express");
@@ -23,9 +21,6 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 app.locals.supabase = supabase;
-
-
-
 
 // ---------------------
 // JWT Auth Middleware
@@ -124,7 +119,8 @@ app.get("/api/beneficiary/:aadhar", async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("beneficiary")
-      .select(`
+      .select(
+        `
         full_name,
         age,
         gender,
@@ -135,7 +131,8 @@ app.get("/api/beneficiary/:aadhar", async (req, res) => {
         district,
         occupation,
         registration_date
-      `)
+      `
+      )
       .eq("aadhar_no", aadhar)
       .single();
 
@@ -152,41 +149,49 @@ app.get("/api/beneficiary/:aadhar", async (req, res) => {
   }
 });
 
-
 // In your backend (e.g., server.js or routes/beneficiary.js)
 // Assuming you are using 'pg' pool for database connection
 
 app.post("/api/submit-profile", async (req, res) => {
   try {
     const {
-      aadhaar, fullName, age, gender, mobile, address,
-      yearlyIncome, state, district, occupation,
-      registrationDate, casteCertificateNumber
+      aadhaar,
+      fullName,
+      age,
+      gender,
+      mobile,
+      address,
+      yearlyIncome,
+      state,
+      district,
+      occupation,
+      registrationDate,
+      casteCertificateNumber,
     } = req.body;
 
     // 1️⃣ UPSERT beneficiary
-    const { error: benErr } = await supabase
-      .from("beneficiary")
-      .upsert(
-        {
-          aadhar_no: String(aadhaar).trim(),
-          full_name: fullName,
-          age,
-          gender,
-          phone_no: mobile,
-          address,
-          income_yearly: yearlyIncome,
-          state,
-          district,
-          occupation,
-          registration_date: registrationDate
-        },
-        { onConflict: "aadhar_no" }
-      );
+    const { error: benErr } = await supabase.from("beneficiary").upsert(
+      {
+        aadhar_no: String(aadhaar).trim(),
+        full_name: fullName,
+        age,
+        gender,
+        phone_no: mobile,
+        address,
+        income_yearly: yearlyIncome,
+        state,
+        district,
+        occupation,
+        registration_date: registrationDate,
+      },
+      { onConflict: "aadhar_no" }
+    );
 
     if (benErr) {
       console.error("Beneficiary Upsert Error:", benErr);
-      return res.status(500).json({ success: false, message: "Failed to update beneficiary" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to update beneficiary" });
     }
 
     // 2️⃣ Check caste certificate
@@ -198,7 +203,9 @@ app.post("/api/submit-profile", async (req, res) => {
 
     if (casteErr) {
       console.error("Caste Check Error:", casteErr);
-      return res.status(500).json({ success: false, message: "Failed to verify caste" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to verify caste" });
     }
 
     let isEligible = false;
@@ -208,7 +215,7 @@ app.post("/api/submit-profile", async (req, res) => {
       return res.json({
         success: true,
         isEligible: false,
-        message: "Profile updated. Caste certificate not found."
+        message: "Profile updated. Caste certificate not found.",
       });
     }
 
@@ -223,27 +230,33 @@ app.post("/api/submit-profile", async (req, res) => {
         .from("eligible_beneficiary")
         .upsert(
           {
-            aadhar_no: String(aadhaar),  // TEXT column
-            eligibility_status: true
+            aadhar_no: String(aadhaar),
+            eligibility_status: true,
+            occupation: occupation, // save occupation enum
+            caste_certificate_number: casteCertificateNumber, // <<--- NEW
           },
           { onConflict: "aadhar_no" }
         );
 
       if (eligibleErr) {
         console.error("Eligibility Upsert Error:", eligibleErr);
-        return res.status(500).json({ success: false, message: "Failed to update eligibility" });
+        return res
+          .status(500)
+          .json({ success: false, message: "Failed to update eligibility" });
       }
 
       message = "You are eligible! Proceed to loan application.";
     } else {
-      message = "Profile updated. Based on your caste (General), you are not eligible.";
+      message =
+        "Profile updated. Based on your caste (General), you are not eligible.";
     }
 
     return res.json({ success: true, isEligible, message });
-
   } catch (err) {
     console.error("Server Error:", err);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
 });
 
