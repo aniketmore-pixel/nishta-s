@@ -150,40 +150,51 @@ const TrackApplication = () => {
           return;
         }
 
-        const normalized = data.applications.map((app) => {
-          const uiStatus = mapBackendStatus(app.status);
-          const loanAmountApplied = formatINR(app.loan_amount_applied);
-          const loanAmountApproved = app.loan_amount_approved
-            ? formatINR(app.loan_amount_approved)
-            : null;
+        // Filter out entries where loan_application_id or status is null
+        const normalized = data.applications
+          .filter(
+            (app) =>
+              app.loan_application_id !== null &&
+              app.loan_application_id !== undefined &&
+              app.status !== null &&
+              app.status !== undefined
+          )
+          .map((app) => {
+            const uiStatus = mapBackendStatus(app.status);
+            const loanAmountApplied = formatINR(app.loan_amount_applied);
+            const loanAmountApproved = app.loan_amount_approved
+              ? formatINR(app.loan_amount_approved)
+              : null;
 
-          return {
-            id: app.loan_application_id || "N/A",
-            appliedDate: formatAppliedDate(app.applied_on),
-            schemeName: app.scheme || "N/A",
+            return {
+              id: app.loan_application_id || "N/A",
+              appliedDate: formatAppliedDate(app.applied_on),
+              schemeName: app.scheme || "N/A",
 
-            status: uiStatus,
-            offerStatus:
-              uiStatus === "Approved" && app.final_accept_by_user
-                ? "Accepted"
+              status: uiStatus,
+              offerStatus:
+                app.final_accept_by_user === true
+                  ? "Accepted"
+                  : app.final_accept_by_user === false
+                  ? "Rejected"
+                  : null,
+
+              loanAmountApplied: loanAmountApplied || "N/A",
+              tenureApplied: app.tenure_applied
+                ? `${app.tenure_applied} months`
+                : "N/A",
+              loanAmountApproved,
+              tenureApproved: app.tenure_approved
+                ? `${app.tenure_approved} months`
                 : null,
 
-            loanAmountApplied: loanAmountApplied || "N/A",
-            tenureApplied: app.tenure_applied
-              ? `${app.tenure_applied} months`
-              : "N/A",
-            loanAmountApproved,
-            tenureApproved: app.tenure_approved
-              ? `${app.tenure_approved} months`
-              : null,
-
-            physicalInterventionRequired:
-              app.physical_intervention_required || false,
-            physicalInterventionNote: app.physical_intervention_note || "",
-            rejectionReason: app.rejection_reason || "",
-            raw: app,
-          };
-        });
+              physicalInterventionRequired:
+                app.physical_intervention_required || false,
+              physicalInterventionNote: app.physical_intervention_note || "",
+              rejectionReason: app.rejection_reason || "",
+              raw: app,
+            };
+          });
 
         setApplications(normalized);
         setLoading(false);
@@ -259,9 +270,7 @@ const TrackApplication = () => {
       closeConfirmDialog();
     } catch (err) {
       console.error(err);
-      setDecisionError(
-        "Something went wrong while submitting your decision."
-      );
+      setDecisionError("Something went wrong while submitting your decision.");
     } finally {
       setSubmittingDecision(false);
     }
@@ -290,9 +299,22 @@ const TrackApplication = () => {
       )}
 
       {!loading && !error && applications.length === 0 && (
-        <p className="text-muted-foreground text-sm">
-          You have not applied for any loan yet.
-        </p>
+        <div className="p-4 bg-muted rounded-lg text-center">
+          <p className="text-muted-foreground text-sm">
+            <strong>You haven&apos;t applied for any scheme yet.</strong>
+            <br />
+            Please apply for a scheme to begin your loan process.
+          </p>
+          <Button
+            className="mt-3"
+            size="sm"
+            onClick={() => {
+              window.location.href = "http://localhost:8080/dashboard/benefits";
+            }}
+          >
+            Apply for a Scheme
+          </Button>
+        </div>
       )}
 
       <div className="space-y-6">
@@ -457,9 +479,7 @@ const TrackApplication = () => {
                         <p className="font-medium text-red-800 mb-1">
                           Reason for Rejection
                         </p>
-                        <p className="text-red-800/90">
-                          {app.rejectionReason}
-                        </p>
+                        <p className="text-red-800/90">{app.rejectionReason}</p>
                       </div>
                     </div>
                   )}
@@ -479,22 +499,25 @@ const TrackApplication = () => {
                         <Button
                           size="sm"
                           className="border-none"
-                          disabled={app.offerStatus === "Accepted"}
-                          onClick={() =>
-                            openConfirmDialog(app.id, "Accepted")
-                          }
+                          disabled={
+                            app.offerStatus === "Accepted" ||
+                            app.offerStatus === "Rejected"
+                          } // disable if any decision
+                          onClick={() => openConfirmDialog(app.id, "Accepted")}
                         >
                           {app.offerStatus === "Accepted"
                             ? "Offer Accepted"
                             : "Accept Offer"}
                         </Button>
+
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={app.offerStatus === "Rejected"}
-                          onClick={() =>
-                            openConfirmDialog(app.id, "Rejected")
-                          }
+                          disabled={
+                            app.offerStatus === "Rejected" ||
+                            app.offerStatus === "Accepted"
+                          } // disable if any decision
+                          onClick={() => openConfirmDialog(app.id, "Rejected")}
                         >
                           {app.offerStatus === "Rejected"
                             ? "Offer Rejected"
@@ -526,11 +549,11 @@ const TrackApplication = () => {
             <DialogDescription className="space-y-2">
               <p>
                 You are about to{" "}
-                <span className="font-semibold">
-                  {confirmDialog.decision === "Accepted"
-                    ? "ACCEPT"
-                    : "REJECT"}
-                </span>{" "}
+                  <span className="font-semibold">
+                    {confirmDialog.decision === "Accepted"
+                      ? "ACCEPT"
+                      : "REJECT"}
+                  </span>{" "}
                 the final loan offer for application ID{" "}
                 <span className="font-mono">
                   {confirmDialog.applicationId}

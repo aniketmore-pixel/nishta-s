@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 
 const nbcfdcSchemes = [
   {
@@ -16,7 +21,7 @@ const nbcfdcSchemes = [
 
 Under this scheme, beneficiaries can avail loans up to ₹15 lakh, depending on the nature and requirement of the project. NBCFDC typically contributes the major share of the project cost, while the remaining is contributed by the beneficiary or channel partner. The interest rate increases gradually across loan slabs to ensure fairness and viability — 6% p.a. up to ₹5 lakh, 7% p.a. for ₹5–10 lakh, and 8% p.a. for ₹10–15 lakh. The repayment period extends up to 8 years, including a moratorium period of around six months where the beneficiary need not pay the principal amount.
 
-This scheme is ideal for individuals planning to become self-employed, expand an existing business, or start a sustainable livelihood project. It is designed to promote economic independence, create employment opportunities, and uplift socially and economically weaker households.`
+This scheme is ideal for individuals planning to become self-employed, expand an existing business, or start a sustainable livelihood project. It is designed to promote economic independence, create employment opportunities, and uplift socially and economically weaker households.`,
   },
   {
     title: "Term Loan – Education Loan Scheme",
@@ -24,12 +29,13 @@ This scheme is ideal for individuals planning to become self-employed, expand an
       "Higher education for backward-class students in India or abroad (professional, technical, vocational courses).",
     amount: "India: up to ₹15 Lakh | Abroad: up to ₹20 Lakh",
     interest: "• Boys → 4% p.a.\n• Girls → 3.5% p.a.",
-    repayment: "Moratorium during course; repayment after completion; total up to ~15 years.",
+    repayment:
+      "Moratorium during course; repayment after completion; total up to ~15 years.",
     detail: `The Education Loan Scheme enables students belonging to backward-class families to pursue higher studies in India or abroad without financial barriers. It financially supports a wide range of courses including professional degrees, technical programs, vocational training, postgraduate studies, and specialized skill-oriented courses. The scheme ensures that deserving students can access quality education and build strong career foundations.
 
 The loan typically covers essential expenses such as tuition fees, hostel charges, examination fees, books, educational equipment, travel expenses (for overseas study), and other academic requirements. Students can borrow up to ₹15 lakh for studies in India and up to ₹20 lakh for studying abroad. NBCFDC offers very low interest rates — 4% per annum for boys and 3.5% per annum for girls — making higher education significantly more affordable.
 
-A major benefit of this scheme is the extended moratorium period, which covers the full course duration plus additional time before repayment begins. The total repayment period, including the moratorium, can extend up to around 15 years, reducing financial stress on the student. This scheme is perfect for students wanting to achieve academic and professional excellence but lacking financial resources.`
+A major benefit of this scheme is the extended moratorium period, which covers the full course duration plus additional time before repayment begins. The total repayment period, including the moratorium, can extend up to around 15 years, reducing financial stress on the student. This scheme is perfect for students wanting to achieve academic and professional excellence but lacking financial resources.`,
   },
   {
     title: "New Swarnima Scheme (Women)",
@@ -42,7 +48,7 @@ A major benefit of this scheme is the extended moratorium period, which covers t
 
 The scheme provides loans of up to ₹2 lakh at an extremely low interest rate of just 5% per annum, with NBCFDC funding the major share of the loan amount. The beneficiary contribution is minimal, ensuring that financial limitations do not prevent women from starting or expanding their businesses. The repayment period extends up to 8 years, including a moratorium period, which gives women enough time to stabilize their business before beginning repayments.
 
-This scheme is specifically designed to empower women entrepreneurs, increase their participation in income-generating activities, and uplift families by improving female economic participation. It is one of the most beneficiary-friendly schemes offered by NBCFDC.`
+This scheme is specifically designed to empower women entrepreneurs, increase their participation in income-generating activities, and uplift families by improving female economic participation. It is one of the most beneficiary-friendly schemes offered by NBCFDC.`,
   },
   {
     title: "Individual Loan Scheme",
@@ -57,7 +63,7 @@ This scheme is specifically designed to empower women entrepreneurs, increase th
 
 The scheme offers loans up to ₹25 lakh, making it suitable for ventures that need larger working capital or fixed capital investment. The interest rate depends on the loan amount — 7% per annum for loans up to ₹1.25 lakh and 8% per annum for higher loan slabs. NBCFDC usually finances a major portion of the project cost, while the remaining is contributed by the beneficiary or channel partner.
 
-The repayment period varies between 4 to 7 years, depending on the size and nature of the project. The scheme can also support educational needs for long-duration courses under a separate repayment structure. Overall, this scheme aims to enable sustained business growth, increase employment opportunities, and support ambitious backward-class entrepreneurs seeking higher capital.`
+The repayment period varies between 4 to 7 years, depending on the size and nature of the project. The scheme can also support educational needs for long-duration courses under a separate repayment structure. Overall, this scheme aims to enable sustained business growth, increase employment opportunities, and support ambitious backward-class entrepreneurs seeking higher capital.`,
   },
   {
     title: "Micro-Finance Scheme (SHGs / Groups)",
@@ -70,7 +76,7 @@ The repayment period varies between 4 to 7 years, depending on the size and natu
 
 Each SHG can receive financing up to ₹15 lakh, while each member can obtain up to ₹1.25 lakh. NBCFDC typically finances a large share of the total loan, making the scheme highly accessible to communities with limited savings. The interest rate to beneficiaries is just 5% per annum, which is very affordable compared to market rates.
 
-This scheme promotes financial inclusion, group cooperation, and shared responsibility. The repayment period is up to 4 years, including a moratorium period of around six months. It is a highly effective model for grassroots economic development and is especially helpful for rural and semi-urban households.`
+This scheme promotes financial inclusion, group cooperation, and shared responsibility. The repayment period is up to 4 years, including a moratorium period of around six months. It is a highly effective model for grassroots economic development and is especially helpful for rural and semi-urban households.`,
   },
   {
     title: "Mahila Samriddhi Yojana (MSY)",
@@ -83,7 +89,7 @@ This scheme promotes financial inclusion, group cooperation, and shared responsi
 
 Each woman can access up to ₹1.25 lakh, while SHGs can collectively avail up to ₹15 lakh. The scheme provides highly concessional interest rates of 4% per annum, making it one of the most affordable financing options for women entrepreneurs. The financing pattern is extremely favorable, with NBCFDC typically contributing a major share of the loan amount.
 
-Repayment is spread over about 4 years, including a moratorium period. The scheme aims to uplift women economically, build leadership and financial literacy within SHGs, and improve household income security. It is particularly beneficial for women who wish to start small-scale ventures but lack capital and collateral.`
+Repayment is spread over about 4 years, including a moratorium period. The scheme aims to uplift women economically, build leadership and financial literacy within SHGs, and improve household income security. It is particularly beneficial for women who wish to start small-scale ventures but lack capital and collateral.`,
   },
   {
     title: "Micro-Finance – Small Loan for Individuals",
@@ -96,7 +102,7 @@ Repayment is spread over about 4 years, including a moratorium period. The schem
 
 The maximum loan available is ₹1.25 lakh, which makes it ideal for quick-start livelihood projects with lower investment needs. The interest rate is concessional (around 6% per annum), ensuring affordability. NBCFDC usually covers a major part of the project cost, with the beneficiary or channel partner contributing the remaining portion.
 
-With a repayment period of around 4 years, this scheme is designed to help individuals achieve sustainable self-employment and gradually expand their micro-enterprises without heavy financial burden.`
+With a repayment period of around 4 years, this scheme is designed to help individuals achieve sustainable self-employment and gradually expand their micro-enterprises without heavy financial burden.`,
   },
   {
     title: "Micro-Finance – NBFC-MFI / MFI Lending",
@@ -109,26 +115,26 @@ With a repayment period of around 4 years, this scheme is designed to help indiv
 
 Each beneficiary can receive up to ₹1.25 lakh, with total group-level lending reaching up to ₹15 lakh. The financing pattern typically involves NBCFDC contributing the major share and the partner institution providing the rest. Since MFIs incur operational costs, the interest rate under this scheme is higher (around 12% per annum), but it ensures faster processing, doorstep servicing, and wider coverage.
 
-Repayment is usually completed within about 4 years, depending on the MFI’s policies. This scheme is crucial for last-mile delivery of financial support to backward-class individuals living in rural, tribal, and hard-to-reach areas.`
-  }
+Repayment is usually completed within about 4 years, depending on the MFI’s policies. This scheme is crucial for last-mile delivery of financial support to backward-class individuals living in rural, tribal, and hard-to-reach areas.`,
+  },
 ];
 
 const Benefits = () => {
-  // new
   const [eligible, setEligible] = useState(false);
+  const [selectedScheme, setSelectedScheme] = useState(null);
+  const [consent, setConsent] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
-  const [selectedScheme, setSelectedScheme] = React.useState(null);
-  const [consent, setConsent] = React.useState(false);
-
-  // new
   useEffect(() => {
     // check eligibility on mount
     const checkEligibility = async () => {
       const aadhar_no = localStorage.getItem("aadhar_no");
-      if (!aadhar_no) return; 
+      if (!aadhar_no) return;
 
       try {
-        const res = await fetch(`http://localhost:5010/api/eligible-beneficiary/${aadhar_no}`);
+        const res = await fetch(
+          `http://localhost:5010/api/eligible-beneficiary/${aadhar_no}`
+        );
         const data = await res.json();
         setEligible(data.success && data.eligibility_status);
       } catch (err) {
@@ -145,29 +151,81 @@ const Benefits = () => {
     setConsent(false);
   };
 
-  const handlePopupApply = () => {
+  const handlePopupApply = async () => {
     if (!consent || !selectedScheme) return;
-    const schemeParam = encodeURIComponent(selectedScheme.title);
-    window.location.href = `http://localhost:8080/dashboard/apply?scheme=${schemeParam}`;
+
+    const aadhar_no = localStorage.getItem("aadhar_no");
+    if (!aadhar_no) {
+      alert("Aadhaar number not found. Please login or complete your profile first.");
+      return;
+    }
+
+    try {
+      setIsApplying(true);
+
+      const res = await fetch("http://localhost:5010/api/applications/apply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          aadhar_no,
+          scheme: selectedScheme.title, // save scheme name in DB
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        console.error("Failed to create application:", data);
+        alert(data.message || "Failed to create loan application. Please try again.");
+        setIsApplying(false);
+        return;
+      }
+
+      const applicationId = data.application?.loan_application_id;
+      const schemeParam = encodeURIComponent(selectedScheme.title);
+
+      // Optionally store applicationId in localStorage if you want to reuse later
+      // localStorage.setItem("loan_application_id", applicationId);
+
+      // Redirect to Apply Loan page with scheme + application id
+      const queryParams = new URLSearchParams({
+        scheme: schemeParam,
+        applicationId: applicationId || "",
+      }).toString();
+
+      window.location.href = `http://localhost:8080/dashboard/apply?${queryParams}`;
+    } catch (err) {
+      console.error("Error while creating application:", err);
+      alert("Something went wrong while creating loan application.");
+      setIsApplying(false);
+    }
   };
 
   const handleClosePopup = () => {
     setSelectedScheme(null);
     setConsent(false);
+    setIsApplying(false);
   };
 
   return (
     <div className="container mx-auto px-4 py-8 pt-20">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-primary mb-2">Government Schemes</h1>
+        <h1 className="text-3xl font-bold text-primary mb-2">
+          Government Schemes
+        </h1>
         <p className="text-muted-foreground">
-          Explore NBCFDC concessional loan schemes designed for income generation and upliftment.
+          Explore NBCFDC concessional loan schemes designed for income generation
+          and upliftment.
         </p>
       </div>
 
       {/* NBCFDC Schemes ONLY */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-primary mb-4">NBCFDC Loan Schemes</h2>
+        <h2 className="text-2xl font-bold text-primary mb-4">
+          NBCFDC Loan Schemes
+        </h2>
         <div className="grid md:grid-cols-2 gap-6">
           {nbcfdcSchemes.map((scheme, index) => (
             <Card
@@ -175,7 +233,9 @@ const Benefits = () => {
               className="shadow-card border border-primary/20 hover:border-primary/40 hover:shadow-lg transition-all duration-200 rounded-xl h-full flex flex-col bg-background/80"
             >
               <CardHeader className="pb-3 space-y-1">
-                <CardTitle className="text-lg leading-snug">{scheme.title}</CardTitle>
+                <CardTitle className="text-lg leading-snug">
+                  {scheme.title}
+                </CardTitle>
                 <CardDescription className="text-sm">
                   {scheme.description}
                 </CardDescription>
@@ -271,8 +331,9 @@ const Benefits = () => {
                   onChange={(e) => setConsent(e.target.checked)}
                 />
                 <span>
-                  I hereby give my consent to proceed with this NBCFDC loan application and
-                  authorize use of my information for eligibility and verification purposes.
+                  I hereby give my consent to proceed with this NBCFDC loan
+                  application and authorize use of my information for eligibility
+                  and verification purposes.
                 </span>
               </label>
             </div>
@@ -281,8 +342,8 @@ const Benefits = () => {
               <Button variant="outline" onClick={handleClosePopup}>
                 Cancel
               </Button>
-              <Button onClick={handlePopupApply} disabled={!consent}>
-                Apply Now
+              <Button onClick={handlePopupApply} disabled={!consent || isApplying}>
+                {isApplying ? "Processing..." : "Apply Now"}
               </Button>
             </div>
           </div>

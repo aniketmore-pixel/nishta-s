@@ -8,7 +8,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -88,52 +94,75 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
           />
         </div>
 
-        {/* Asset Count with +/- */}
-        <FormField
-          control={form.control}
-          name="assetCount"
-          render={({ field }) => {
-            const value = Number(field.value) || 0;
+        {/* Asset Count with +/- and Estimated Value */}
+        <div className="grid md:grid-cols-2 gap-4 items-end">
+          <FormField
+            control={form.control}
+            name="assetCount"
+            render={({ field }) => {
+              const value = Number(field.value) || 0;
 
-            const handleChange = (newVal) => {
-              if (newVal < 0) newVal = 0;
-              field.onChange(newVal);
-            };
+              const handleChange = (newVal) => {
+                if (newVal < 0) newVal = 0;
+                field.onChange(newVal);
+              };
 
-            return (
-              <FormItem>
-                <FormLabel>Asset Count</FormLabel>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleChange(value - 1)}
-                  >
-                    -
-                  </Button>
+              return (
+                <FormItem>
+                  <FormLabel>Asset Count</FormLabel>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleChange(value - 1)}
+                    >
+                      -
+                    </Button>
 
-                  <div className="min-w-[3rem] text-center text-sm font-medium">
-                    {value}
+                    <div className="min-w-[3rem] text-center text-sm font-medium">
+                      {value}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleChange(value + 1)}
+                    >
+                      +
+                    </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Total count of significant assets (e.g., land, shop, vehicle, etc.).
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleChange(value + 1)}
-                  >
-                    +
-                  </Button>
-                </div>
+          <FormField
+            control={form.control}
+            name="assetEstimatedValue"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Estimated Asset Value (₹)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Total estimated value"
+                    {...field}
+                  />
+                </FormControl>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Total count of significant assets (e.g., land, shop, vehicle, etc.).
+                  Approximate total market value of all your assets.
                 </p>
                 <FormMessage />
               </FormItem>
-            );
-          }}
-        />
+            )}
+          />
+        </div>
 
         {/* Tip */}
         <div className="p-4 bg-muted rounded-lg">

@@ -21,7 +21,6 @@ import {
   FileText,
   CreditCard,
   DollarSign,
-  CheckCircle2,
 } from "lucide-react";
 
 // ✅ Section Components
@@ -50,6 +49,12 @@ const incomeDetailsSchema = z.object({
   householdMembers: z.string().optional(),
   annualIncome: z.string().optional(),
   assetCount: z.any().optional(),
+  assetEstimatedValue: z
+    .string()
+    .min(1, "Estimated asset value is required")
+    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
+      message: "Enter a valid non-negative amount",
+    }),
 });
 
 const bankDetailsSchema = z
@@ -136,7 +141,16 @@ export const profileSections = [
 const ApplyLoan = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const selectedSchemeName = searchParams.get("scheme");
+
+  const rawSchemeQuery = searchParams.get("scheme");
+  const decodedScheme = rawSchemeQuery
+    ? decodeURIComponent(rawSchemeQuery)
+    : null;
+  const cleanedSchemeName = decodedScheme
+    ? decodedScheme.replace(/–/g, " ").replace(/-/g, " ")
+    : null;
+
+  const selectedSchemeName = cleanedSchemeName;
 
   const pageTitle = selectedSchemeName
     ? `Complete Your Profile for ${selectedSchemeName} 🚀`
@@ -223,6 +237,7 @@ const ApplyLoan = () => {
     defaultValues: {
       employmentType: "Self-employed",
       assetCount: 0,
+      assetEstimatedValue: "",
     },
   });
 
@@ -259,7 +274,7 @@ const ApplyLoan = () => {
     },
   });
 
-  /* ---------------------- HANDLERS (same logic as before) ---------------------- */
+  /* ---------------------- HANDLERS ---------------------- */
 
   const markSectionCompleted = (id) => {
     if (!completedSections.includes(id)) {
@@ -338,6 +353,8 @@ const ApplyLoan = () => {
       variant: "success",
     });
   };
+
+  const { toast: _t } = useToast(); // just to keep useToast usage consistent if needed later
 
   const handleAadhaarVerification = async (method) => {
     setVerifyingAadhaar(true);
@@ -434,7 +451,7 @@ const ApplyLoan = () => {
         body: formData,
       });
 
-      const data = await res.json();
+        const data = await res.json();
 
       setUploadedBills((prev) => ({
         ...prev,
@@ -667,9 +684,7 @@ const ApplyLoan = () => {
         <Card className="shadow-lg min-h-[500px]">
           <CardHeader className="border-b">
             <CardTitle>
-              {
-                profileSections.find((s) => s.id === selectedSection)?.title
-              }
+              {profileSections.find((s) => s.id === selectedSection)?.title}
             </CardTitle>
             <CardDescription>
               Complete this section to improve your loan eligibility.

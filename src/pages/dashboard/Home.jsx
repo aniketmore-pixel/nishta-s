@@ -171,7 +171,7 @@ const Home = () => {
   const normalized = Math.min(100, Math.max(0, creditScore ?? 0));
   const cibilScore = Math.round(300 + (normalized / 100) * 600); // 300–900
 
-  // Needle angle for semi-circle (-90° to +90°) – back to your original
+  // Needle angle for semi-circle (-90° to +90°)
   const progress = (cibilScore - 300) / 600; // 0–1
   const minAngle = -85;
   const maxAngle = 85;
@@ -235,6 +235,13 @@ const Home = () => {
     });
   };
 
+  // Split applications into valid & invalid (missing ID or status)
+  const validApplications = applications.filter(
+    (app) => app.loan_application_id && app.status
+  );
+  const hasInvalidApplications =
+    applications.length > 0 && validApplications.length !== applications.length;
+
   return (
     <div className="container mx-auto px-4 py-8 pt-20">
       <div className="mb-8">
@@ -267,7 +274,7 @@ const Home = () => {
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* CIBIL-style TRUE Semicircle Gauge – back to your original look */}
+            {/* CIBIL-style TRUE Semicircle Gauge */}
             <div className="flex flex-col items-center">
               {/* Outer Semicircle */}
               <div className="relative w-48 h-24 overflow-hidden">
@@ -284,12 +291,12 @@ const Home = () => {
                 {/* White masking for inner ring */}
                 <div className="absolute w-40 h-40 rounded-full bg-white top-4 left-4"></div>
 
-                {/* Needle (line) – attached to center, not hidden */}
+                {/* Needle */}
                 <div
                   className="absolute w-1 bg-blue-600 h-20 origin-bottom"
                   style={{
                     left: "50%",
-                    bottom: "-2px", // small negative so line starts just inside arc
+                    bottom: "-2px",
                     transform: `translateX(-50%) rotate(${angle}deg)`,
                   }}
                 ></div>
@@ -482,53 +489,63 @@ const Home = () => {
                 You don&apos;t have any loan applications yet.
               </div>
             ) : (
-              applications.map((app) => {
-                const meta = getStatusMeta(app.status);
-                const displayAmountRaw =
-                  app.loan_amount_approved ?? app.loan_amount_applied;
-                const displayAmountNumber = displayAmountRaw
-                  ? Number(displayAmountRaw)
-                  : null;
-                const displayAmount = displayAmountNumber
-                  ? currencyFormatter.format(displayAmountNumber)
-                  : "—";
+              <>
+                {validApplications.map((app) => {
+                  const meta = getStatusMeta(app.status);
+                  const displayAmountRaw =
+                    app.loan_amount_approved ?? app.loan_amount_applied;
+                  const displayAmountNumber = displayAmountRaw
+                    ? Number(displayAmountRaw)
+                    : null;
+                  const displayAmount = displayAmountNumber
+                    ? currencyFormatter.format(displayAmountNumber)
+                    : "—";
 
-                return (
-                  <div
-                    key={app.loan_application_id}
-                    className="p-4 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-medium">
-                          {app.scheme || "Loan Application"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Applied on {formatDate(app.applied_on)}
-                        </p>
+                  return (
+                    <div
+                      key={app.loan_application_id}
+                      className="p-4 rounded-lg border bg-card"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium">
+                            {app.scheme || "Loan Application"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Applied on {formatDate(app.applied_on)}
+                          </p>
+                        </div>
+
+                        <Badge
+                          className={
+                            meta.outline ? `border ${meta.badgeClass}` : meta.badgeClass
+                          }
+                          variant={meta.outline ? "outline" : "default"}
+                        >
+                          {meta.label}
+                        </Badge>
                       </div>
 
-                      <Badge
-                        className={meta.outline ? `border ${meta.badgeClass}` : meta.badgeClass}
-                        variant={meta.outline ? "outline" : "default"}
-                      >
-                        {meta.label}
-                      </Badge>
-                    </div>
+                      <div className="flex items-center justify-between text-sm mb-3">
+                        <span className="text-muted-foreground">
+                          Application ID: {app.loan_application_id}
+                        </span>
+                        <span className="font-medium">
+                          Loan Amount Applied : {displayAmount}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center justify-between text-sm mb-3">
-                      <span className="text-muted-foreground">
-                        Application ID: {app.loan_application_id}
-                      </span>
-                      <span className="font-medium">
-                        Loan Amount Applied : {displayAmount}
-                      </span>
+                      <Progress value={meta.progress} className="h-2" />
                     </div>
+                  );
+                })}
 
-                    <Progress value={meta.progress} className="h-2" />
+                {hasInvalidApplications && (
+                  <div className="p-4 rounded-lg border bg-card text-xs text-muted-foreground">
+                   You haven't applied for any loan yet.
                   </div>
-                );
-              })
+                )}
+              </>
             )}
 
             <Link to="/dashboard/track">
