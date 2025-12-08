@@ -1,338 +1,84 @@
-
-// const express = require("express");
-// const supabase = require("../supabaseClient.js");
-
-// const router = express.Router();
-
-// // ===============================
-// // 📌 Get all loan applications by Aadhaar Number
-// // ===============================
-// router.get("/applications/:aadhar_no", async (req, res) => {
-//   const { aadhar_no } = req.params;
-
-//   console.log("🔵 Incoming Request -> /applications/", aadhar_no);
-
-//   if (!aadhar_no) {
-//     console.log("❌ Error: aadhar_no missing");
-//     return res.status(400).json({
-//       success: false,
-//       message: "Aadhaar number is required",
-//     });
-//   }
-
-//   console.log("📌 Received aadhar_no:", aadhar_no);
-//   console.log("📌 Length:", aadhar_no.length);
-
-//   // Aadhaar validation
-//   if (aadhar_no.length !== 12) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Aadhaar Number must be exactly 12 digits.",
-//     });
-//   }
-
-//   try {
-//     console.log("🟡 Querying Supabase...");
-
-//     const { data, error } = await supabase
-//       .from("track_application")
-//       // 🔴 NOTE: use the correct column name as in your DB
-//       // If your table has "addhar_no", use that. If it has "aadhar_no", keep as is.
-//       .select("*")
-//       .eq("aadhar_no", aadhar_no) // or .eq("addhar_no", aadhar_no)
-//       .order("applied_on", { ascending: false });
-
-//     console.log("🟣 Supabase Response:");
-//     console.log("➡️ Data:", data);
-//     console.log("➡️ Error:", error);
-
-//     if (error) {
-//       console.log("🔥 Supabase Error Occurred:", error);
-//       return res.status(500).json({
-//         success: false,
-//         message: "Database error",
-//       });
-//     }
-
-//     if (!data || data.length === 0) {
-//       console.log("⚠️ No applications found for Aadhaar:", aadhar_no);
-//       return res.status(404).json({
-//         success: false,
-//         message: "No loan applications found.",
-//       });
-//     }
-
-//     console.log("✅ Successfully fetched loan applications.");
-
-//     return res.json({
-//       success: true,
-//       total: data.length,
-//       applications: data,
-//     });
-//   } catch (err) {
-//     console.error("🔥 INTERNAL ERROR fetching loan applications:", err);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//     });
-//   }
-// });
-
-// // ===============================
-// // 📌 User Accepts or Rejects Final Offer
-// //     - Accept / Reject can be done ONLY ONCE
-// //     - If final_accept_by_user is already true/false -> block further change
-// // ===============================
-// router.post("/applications/offer-decision", async (req, res) => {
-//   const { loan_application_id, decision } = req.body;
-
-//   console.log("🔵 Offer Decision Request:", req.body);
-
-//   if (!loan_application_id || !decision) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "loan_application_id and decision are required",
-//     });
-//   }
-
-//   // Normalize decision
-//   const normalizedDecision = String(decision).toLowerCase().trim();
-
-//   let finalAccept;
-//   if (normalizedDecision === "accepted") {
-//     finalAccept = true;
-//   } else if (normalizedDecision === "rejected") {
-//     finalAccept = false;
-//   } else {
-//     return res.status(400).json({
-//       success: false,
-//       message: "decision must be either 'Accepted' or 'Rejected'",
-//     });
-//   }
-
-//   try {
-//     console.log("🟡 Fetching existing application from Supabase...");
-
-//     // 1️⃣ Get existing record first
-//     const { data: existing, error: fetchError } = await supabase
-//       .from("track_application")
-//       .select("loan_application_id, final_accept_by_user, status")
-//       .eq("loan_application_id", loan_application_id)
-//       .maybeSingle();
-
-//     if (fetchError) {
-//       console.error("🔥 Supabase fetch error:", fetchError);
-//       return res.status(500).json({
-//         success: false,
-//         message: "Database error while fetching application",
-//       });
-//     }
-
-//     if (!existing) {
-//       console.log("⚠️ No application found with ID:", loan_application_id);
-//       return res.status(404).json({
-//         success: false,
-//         message: "Loan application not found",
-//       });
-//     }
-
-//     console.log("📄 Existing application:", existing);
-
-//     // 2️⃣ Optional: only allow decision if status is APPROVED
-//     if (existing.status !== "APPROVED") {
-//       return res.status(400).json({
-//         success: false,
-//         message:
-//           "Final offer decision can only be made for APPROVED applications.",
-//       });
-//     }
-
-//     // 3️⃣ Block further changes if decision already recorded
-//     if (existing.final_accept_by_user !== null && existing.final_accept_by_user !== undefined) {
-//       const already =
-//         existing.final_accept_by_user === true ? "accepted" : "rejected";
-
-//       return res.status(409).json({
-//         success: false,
-//         message: `You have already ${already} this offer. Decision cannot be changed.`,
-//       });
-//     }
-
-//     // 4️⃣ Update final_accept_by_user with new decision
-//     console.log("🟡 Updating Supabase with decision:", finalAccept);
-
-//     const { data, error } = await supabase
-//       .from("track_application")
-//       .update({ final_accept_by_user: finalAccept })
-//       .eq("loan_application_id", loan_application_id)
-//       .select();
-
-//     if (error) {
-//       console.error("🔥 Supabase Error:", error);
-//       return res.status(500).json({
-//         success: false,
-//         message: "Database update failed",
-//       });
-//     }
-
-//     console.log("✅ Offer decision saved:", data);
-
-//     return res.json({
-//       success: true,
-//       message: `Offer ${finalAccept ? "Accepted" : "Rejected"} successfully`,
-//       updated: data,
-//     });
-//   } catch (err) {
-//     console.error("🔥 INTERNAL ERROR updating offer decision:", err);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error",
-//     });
-//   }
-// });
-
-// module.exports = router;
-
-
 const express = require("express");
 const supabase = require("../supabaseClient.js");
 
 const router = express.Router();
 
-// ===============================
-// 🔠 Helper: Generate Loan Application ID (4 letters + 6 digits)
-// ===============================
+/* ============================================================
+   Generate Unique Loan Application ID (4 letters + 6 digits)
+=============================================================== */
 function generateLoanApplicationId() {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let prefix = "";
 
   for (let i = 0; i < 4; i++) {
-    const idx = Math.floor(Math.random() * letters.length);
-    prefix += letters.charAt(idx);
+    prefix += letters.charAt(Math.floor(Math.random() * letters.length));
   }
 
   const numericPart = Math.floor(Math.random() * 1_000_000)
     .toString()
     .padStart(6, "0");
 
-  return prefix + numericPart; // e.g. "ABCD012345"
+  return prefix + numericPart;
 }
 
-// Ensure uniqueness in `track_application.loan_application_id`
 async function generateUniqueLoanApplicationId() {
   const MAX_ATTEMPTS = 10;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const candidate = generateLoanApplicationId();
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("track_application")
       .select("loan_application_id")
       .eq("loan_application_id", candidate)
       .maybeSingle();
 
-    if (error) {
-      console.error("❌ Error checking uniqueness of loan_application_id:", error);
-      throw new Error("Failed to verify loan_application_id uniqueness");
-    }
-
-    if (!data) {
-      // Unique – good to use
-      return candidate;
-    }
-
-    console.log(
-      `⚠️ Collision detected for loan_application_id ${candidate}, attempt ${attempt}/${MAX_ATTEMPTS}`
-    );
+    if (!data) return candidate; // Unique
   }
 
-  throw new Error("Unable to generate unique loan_application_id after multiple attempts");
+  throw new Error("Unable to generate a unique loan_application_id");
 }
 
-// ===============================
-// 📌 Get all loan applications by Aadhaar Number
-// ===============================
+/* ============================================================
+   GET existing applications by Aadhaar
+=============================================================== */
 router.get("/applications/:aadhar_no", async (req, res) => {
   const { aadhar_no } = req.params;
 
-  console.log("🔵 Incoming Request -> /applications/", aadhar_no);
-
-  if (!aadhar_no) {
-    console.log("❌ Error: aadhar_no missing");
+  if (!aadhar_no || aadhar_no.length !== 12) {
     return res.status(400).json({
       success: false,
-      message: "Aadhaar number is required",
-    });
-  }
-
-  console.log("📌 Received aadhar_no:", aadhar_no);
-  console.log("📌 Length:", aadhar_no.length);
-
-  // Aadhaar validation
-  if (aadhar_no.length !== 12) {
-    return res.status(400).json({
-      success: false,
-      message: "Aadhaar Number must be exactly 12 digits.",
+      message: "Aadhaar Number must be 12 digits",
     });
   }
 
   try {
-    console.log("🟡 Querying Supabase...");
-
     const { data, error } = await supabase
       .from("track_application")
       .select("*")
-      .eq("aadhar_no", aadhar_no) // or .eq("addhar_no", aadhar_no) if that's your column
+      .eq("aadhar_no", aadhar_no)
       .order("applied_on", { ascending: false });
 
-    console.log("🟣 Supabase Response:");
-    console.log("➡️ Data:", data);
-    console.log("➡️ Error:", error);
+    if (error)
+      return res.status(500).json({ success: false, message: "Database error" });
 
-    if (error) {
-      console.log("🔥 Supabase Error Occurred:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-      });
-    }
-
-    if (!data || data.length === 0) {
-      console.log("⚠️ No applications found for Aadhaar:", aadhar_no);
+    if (!data || data.length === 0)
       return res.status(404).json({
         success: false,
-        message: "No loan applications found.",
+        message: "No applications found",
       });
-    }
 
-    console.log("✅ Successfully fetched loan applications.");
-
-    return res.json({
-      success: true,
-      total: data.length,
-      applications: data,
-    });
+    return res.json({ success: true, applications: data });
   } catch (err) {
-    console.error("🔥 INTERNAL ERROR fetching loan applications:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// ===============================
-// 🆕 Create new application when user clicks Apply from Benefits
-// - Generates unique loan_application_id (4 chars + 6 digits)
-// - Saves aadhar_no, scheme, status (NULL), final_accept_by_user (NULL)
-// ===============================
+/* ============================================================
+   CREATE NEW APPLICATION — INSERT INTO ALL TABLES
+=============================================================== */
 router.post("/applications/apply", async (req, res) => {
   const { aadhar_no, scheme } = req.body;
-
-  console.log("🔵 New Application Request /applications/apply:", req.body);
 
   if (!aadhar_no || !scheme) {
     return res.status(400).json({
@@ -344,138 +90,170 @@ router.post("/applications/apply", async (req, res) => {
   if (String(aadhar_no).length !== 12) {
     return res.status(400).json({
       success: false,
-      message: "Aadhaar Number must be exactly 12 digits.",
+      message: "Aadhaar must be exactly 12 digits",
     });
   }
 
   try {
-    // 1️⃣ Generate unique loan_application_id
     const loan_application_id = await generateUniqueLoanApplicationId();
-    console.log("✅ Generated unique loan_application_id:", loan_application_id);
 
-    // 2️⃣ Insert new application
-    const { data, error } = await supabase
+    /* -----------------------------
+       1️⃣ Insert → track_application
+    ------------------------------ */
+    const { data: trackApp, error: trackErr } = await supabase
       .from("track_application")
       .insert([
         {
           loan_application_id,
           aadhar_no,
-          scheme,               // scheme column in DB
-          status: null,         // explicitly set to NULL
-          final_accept_by_user: null, // no decision yet
-          // applied_on: will use default in DB (e.g. now()) if defined there
+          scheme,
+          status: null,
+          final_accept_by_user: null,
         },
       ])
       .select()
       .single();
 
-    if (error) {
-      console.error("🔥 Supabase insert error (new application):", error);
+    if (trackErr) {
+      console.error("❌ track_application error:", trackErr);
       return res.status(500).json({
         success: false,
-        message: "Failed to create loan application",
+        message: "Failed to create main application",
       });
     }
 
-    console.log("✅ New loan application created:", data);
+    /* -----------------------------
+       2️⃣ Insert → apply_for_loan
+    ------------------------------ */
+    const { error: applyErr } = await supabase
+      .from("apply_for_loan")
+      .insert([{ loan_application_id, aadhaar_no: aadhar_no }]);
 
+    if (applyErr) console.error("❌ apply_for_loan:", applyErr);
+
+    /* -----------------------------
+       3️⃣ Insert → loan_applications
+    ------------------------------ */
+    const { error: loanErr } = await supabase
+      .from("loan_applications")
+      .insert([{ loan_application_id, aadhaar_no: aadhar_no }]);
+
+    if (loanErr) console.error("❌ loan_applications:", loanErr);
+
+    /* -----------------------------
+       4️⃣ Insert → beneficiary_status
+    ------------------------------ */
+    const { error: benErr } = await supabase
+      .from("beneficiary_status")
+      .insert([
+        {
+          loan_application_id,
+          aadhaar_no: aadhar_no,
+          mgnrega: false,
+          pm_ujjwala_yojana: false,
+          pm_jay: false,
+          enrolled_in_pension_scheme: false,
+        },
+      ]);
+
+    if (benErr) console.error("❌ beneficiary_status:", benErr);
+
+    /* -----------------------------
+       5️⃣ Insert → expenses_and_comodities
+       NOTE: column name is aadhar_no
+    ------------------------------ */
+    const { error: expErr } = await supabase
+      .from("expenses_and_comodities")
+      .insert([{ loan_application_id, aadhar_no }]);
+
+    if (expErr) console.error("❌ expenses_and_comodities:", expErr);
+
+    /* -----------------------------
+       6️⃣ Insert → bank_details
+       Requires NOT NULL fields, so insert placeholders
+    ------------------------------ */
+    const { error: bankErr } = await supabase.from("bank_details").insert([
+      {
+        loan_application_id,
+        aadhaar_no: aadhar_no,
+        account_holder_name: "NA",
+        bank_name: "NA",
+        account_no: "0",
+        ifsc_code: "NA000000000",
+        branch_name: "NA",
+        upi_id: "NA",
+      },
+    ]);
+
+    if (bankErr) console.error("❌ bank_details:", bankErr);
+
+    /* -----------------------------
+       SUCCESS RESPONSE
+    ------------------------------ */
     return res.status(201).json({
       success: true,
-      message: "Loan application created successfully",
-      application: data,
+      message: "Application created successfully",
+      application: trackApp,
     });
   } catch (err) {
-    console.error("🔥 INTERNAL ERROR creating new application:", err);
+    console.error("🔥 INTERNAL ERROR:", err);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "Server error",
     });
   }
 });
 
-// ===============================
-// 📌 User Accepts or Rejects Final Offer
-// ===============================
+/* ============================================================
+   Accept / Reject Offer
+=============================================================== */
 router.post("/applications/offer-decision", async (req, res) => {
   const { loan_application_id, decision } = req.body;
-
-  console.log("🔵 Offer Decision Request:", req.body);
 
   if (!loan_application_id || !decision) {
     return res.status(400).json({
       success: false,
-      message: "loan_application_id and decision are required",
+      message: "loan_application_id and decision required",
     });
   }
 
-  // Normalize decision
-  const normalizedDecision = String(decision).toLowerCase().trim();
+  const normalized = decision.toLowerCase().trim();
+  const finalAccept = normalized === "accepted" ? true : normalized === "rejected" ? false : null;
 
-  let finalAccept;
-  if (normalizedDecision === "accepted") {
-    finalAccept = true;
-  } else if (normalizedDecision === "rejected") {
-    finalAccept = false;
-  } else {
+  if (finalAccept === null) {
     return res.status(400).json({
       success: false,
-      message: "decision must be either 'Accepted' or 'Rejected'",
+      message: "decision must be Accepted or Rejected",
     });
   }
 
   try {
-    console.log("🟡 Fetching existing application from Supabase...");
-
-    // 1️⃣ Get existing record first
-    const { data: existing, error: fetchError } = await supabase
+    const { data: existing } = await supabase
       .from("track_application")
-      .select("loan_application_id, final_accept_by_user, status")
+      .select("status, final_accept_by_user")
       .eq("loan_application_id", loan_application_id)
       .maybeSingle();
 
-    if (fetchError) {
-      console.error("🔥 Supabase fetch error:", fetchError);
-      return res.status(500).json({
-        success: false,
-        message: "Database error while fetching application",
-      });
-    }
-
     if (!existing) {
-      console.log("⚠️ No application found with ID:", loan_application_id);
       return res.status(404).json({
         success: false,
-        message: "Loan application not found",
+        message: "Application not found",
       });
     }
 
-    console.log("📄 Existing application:", existing);
-
-    // 2️⃣ Optional: only allow decision if status is APPROVED
     if (existing.status !== "APPROVED") {
       return res.status(400).json({
         success: false,
-        message:
-          "Final offer decision can only be made for APPROVED applications.",
+        message: "Only approved applications can be accepted/rejected",
       });
     }
 
-    // 3️⃣ Block further changes if decision already recorded
-    if (
-      existing.final_accept_by_user !== null &&
-      existing.final_accept_by_user !== undefined
-    ) {
-      const already =
-        existing.final_accept_by_user === true ? "accepted" : "rejected";
-
+    if (existing.final_accept_by_user !== null) {
       return res.status(409).json({
         success: false,
-        message: `You have already ${already} this offer. Decision cannot be changed.`,
+        message: "Decision already submitted",
       });
     }
-
-    // 4️⃣ Update final_accept_by_user with new decision
-    console.log("🟡 Updating Supabase with decision:", finalAccept);
 
     const { data, error } = await supabase
       .from("track_application")
@@ -483,15 +261,11 @@ router.post("/applications/offer-decision", async (req, res) => {
       .eq("loan_application_id", loan_application_id)
       .select();
 
-    if (error) {
-      console.error("🔥 Supabase Error:", error);
+    if (error)
       return res.status(500).json({
         success: false,
-        message: "Database update failed",
+        message: "Database update error",
       });
-    }
-
-    console.log("✅ Offer decision saved:", data);
 
     return res.json({
       success: true,
@@ -499,12 +273,7 @@ router.post("/applications/offer-decision", async (req, res) => {
       updated: data,
     });
   } catch (err) {
-    console.error("🔥 INTERNAL ERROR updating offer decision:", err);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

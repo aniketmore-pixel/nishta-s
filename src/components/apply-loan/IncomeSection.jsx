@@ -1,4 +1,6 @@
 // src/components/apply-loan/IncomeSection.jsx
+import { useEffect, useState } from "react";
+
 import {
   Form,
   FormControl,
@@ -18,11 +20,129 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react"; // 👈 for the spinner icon
 
 export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🔹 Auto-fetch occupation from eligible_beneficiary using Aadhaar
+  useEffect(() => {
+    const aadharNo =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("aadhar_no")
+        : null;
+
+    console.log("📌 IncomeSection -> aadhar_no from localStorage:", aadharNo);
+
+    if (!aadharNo) {
+      console.warn(
+        "⚠️ No aadhar_no found in localStorage. Occupation cannot be fetched."
+      );
+      return;
+    }
+
+    const fetchOccupation = async () => {
+      try {
+        console.log(
+          "🔵 Calling /api/income-asset/occupation/",
+          encodeURIComponent(aadharNo)
+        );
+
+        const res = await fetch(
+          `http://localhost:5010/api/income-asset/occupation/${encodeURIComponent(
+            aadharNo
+          )}`
+        );
+        const data = await res.json();
+
+        console.log("🟣 Occupation API response:", data);
+
+        if (res.ok && data.success && data.occupation) {
+          const occ = String(data.occupation).trim();
+          form.setValue("employmentType", occ, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+          console.log("✅ employmentType set in form:", occ);
+        } else {
+          console.error(
+            "❌ Occupation API error or no occupation returned:",
+            data
+          );
+        }
+      } catch (err) {
+        console.error("🔥 Failed to fetch occupation:", err);
+      }
+    };
+
+    fetchOccupation();
+  }, [form]);
+
+  // 🔹 Submit: send to backend so it can link to latest loan_application_id
+  const handleSubmit = async (values) => {
+    setIsSubmitting(true);
+    try {
+      const aadhar_no =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("aadhar_no")
+          : null;
+
+      if (!aadhar_no) {
+        console.error("❌ aadhar_no missing in localStorage");
+      }
+
+      const payload = {
+        aadhar_no,
+        primaryIncomeSource: values.primaryIncomeSource,
+        monthlyIncome: values.monthlyIncome,
+        annualIncome: values.annualIncome,
+        assetCount: values.assetCount,
+        estimatedAssetValue: values.assetEstimatedValue,
+      };
+
+      console.log("🔵 Sending payload to /api/income-asset:", payload);
+
+      const res = await fetch("http://localhost:5010/api/income-asset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      console.log("🟣 Income & Asset API response:", data);
+
+      if (res.ok && data.success) {
+        if (data.loan_application_id && typeof window !== "undefined") {
+          window.localStorage.setItem(
+            "loan_application_id",
+            data.loan_application_id
+          );
+          console.log(
+            "✅ Stored loan_application_id in localStorage:",
+            data.loan_application_id
+          );
+        }
+      } else {
+        console.error("❌ Error from /api/income-asset:", data);
+      }
+
+      // Let parent ApplyLoan handle toast + markSectionCompleted
+      if (onSubmit) {
+        onSubmit(values);
+      }
+    } catch (err) {
+      console.error("🔥 Failed to save income & asset details:", err);
+      if (onSubmit) {
+        onSubmit(values);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         {/* Occupation */}
         <FormField
           control={form.control}
@@ -30,10 +150,14 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Occupation *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+                disabled
+              >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select employment type" />
+                    <SelectValue placeholder="Fetching occupation from records..." />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -43,6 +167,10 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
                   <SelectItem value="Unemployed">Unemployed</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                This occupation is auto-fetched from your eligibility records
+                and cannot be edited here.
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -56,7 +184,10 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
             <FormItem>
               <FormLabel>Primary Income Source *</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Small Business, Daily Wage" {...field} />
+                <Input
+                  placeholder="e.g., Small Business, Daily Wage"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -86,7 +217,11 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
               <FormItem>
                 <FormLabel>Annual Income (₹)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="Enter annual income" {...field} />
+                  <Input
+                    type="number"
+                    placeholder="Enter annual income"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -94,7 +229,7 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
           />
         </div>
 
-        {/* Asset Count with +/- and Estimated Value */}
+        {/* Asset Count & Value */}
         <div className="grid md:grid-cols-2 gap-4 items-end">
           <FormField
             control={form.control}
@@ -116,6 +251,7 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
                       variant="outline"
                       size="icon"
                       onClick={() => handleChange(value - 1)}
+                      disabled={isSubmitting}
                     >
                       -
                     </Button>
@@ -129,12 +265,14 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
                       variant="outline"
                       size="icon"
                       onClick={() => handleChange(value + 1)}
+                      disabled={isSubmitting}
                     >
                       +
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Total count of significant assets (e.g., land, shop, vehicle, etc.).
+                    Total count of significant assets (e.g., land, shop,
+                    vehicle, etc.).
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -153,6 +291,7 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
                     type="number"
                     placeholder="Total estimated value"
                     {...field}
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -168,8 +307,8 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">
             💡 Tip: Providing accurate Income & Asset Details helps improve your
-            credit score accuracy and loan eligibility, especially for scheme-based
-            loans like{" "}
+            credit score accuracy and loan eligibility, especially for
+            scheme-based loans like{" "}
             {selectedSchemeName ? `"${selectedSchemeName}"` : "NBCFDC schemes"}.
           </p>
         </div>
@@ -177,14 +316,30 @@ export const IncomeSection = ({ form, onSubmit, selectedSchemeName }) => {
         {/* Upload Income Proof */}
         <div className="space-y-2">
           <Label>Upload Income Proof (Optional)</Label>
-          <Input type="file" accept=".pdf,.jpg,.jpeg,.png" />
+          <Input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            disabled={isSubmitting}
+          />
           <p className="text-xs text-muted-foreground">
             Upload payslip, sale receipt, or income certificate
           </p>
         </div>
 
-        <Button type="submit" className="w-full">
-          Save Income & Asset Details
+        {/* ✅ Button with loading animation */}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving Income & Asset Details...
+            </span>
+          ) : (
+            "Save Income & Asset Details"
+          )}
         </Button>
       </form>
     </Form>

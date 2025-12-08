@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -126,7 +128,6 @@ const Benefits = () => {
   const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
-    // check eligibility on mount
     const checkEligibility = async () => {
       const aadhar_no = localStorage.getItem("aadhar_no");
       if (!aadhar_no) return;
@@ -155,8 +156,9 @@ const Benefits = () => {
     if (!consent || !selectedScheme) return;
 
     const aadhar_no = localStorage.getItem("aadhar_no");
+
     if (!aadhar_no) {
-      alert("Aadhaar number not found. Please login or complete your profile first.");
+      alert("Aadhaar number not found. Please login again.");
       return;
     }
 
@@ -170,35 +172,42 @@ const Benefits = () => {
         },
         body: JSON.stringify({
           aadhar_no,
-          scheme: selectedScheme.title, // save scheme name in DB
+          scheme: selectedScheme.title,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        console.error("Failed to create application:", data);
-        alert(data.message || "Failed to create loan application. Please try again.");
+        alert(data.message || "Failed to create loan application.");
         setIsApplying(false);
         return;
       }
 
-      const applicationId = data.application?.loan_application_id;
+      // ✅ Extract loan ID after backend success
+      const applicationId = data?.application?.loan_application_id;
+
+      if (!applicationId) {
+        alert("Loan Application ID missing from server response.");
+        setIsApplying(false);
+        return;
+      }
+
+      // ✅ Save loan ID to localStorage
+      localStorage.setItem("loan_application_id", applicationId);
+
+      // Redirect user
       const schemeParam = encodeURIComponent(selectedScheme.title);
 
-      // Optionally store applicationId in localStorage if you want to reuse later
-      // localStorage.setItem("loan_application_id", applicationId);
-
-      // Redirect to Apply Loan page with scheme + application id
       const queryParams = new URLSearchParams({
         scheme: schemeParam,
-        applicationId: applicationId || "",
+        applicationId,
       }).toString();
 
       window.location.href = `http://localhost:8080/dashboard/apply?${queryParams}`;
     } catch (err) {
-      console.error("Error while creating application:", err);
-      alert("Something went wrong while creating loan application.");
+      console.error("Error creating application:", err);
+      alert("Something went wrong.");
       setIsApplying(false);
     }
   };
@@ -221,60 +230,48 @@ const Benefits = () => {
         </p>
       </div>
 
-      {/* NBCFDC Schemes ONLY */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-primary mb-4">
           NBCFDC Loan Schemes
         </h2>
+
         <div className="grid md:grid-cols-2 gap-6">
           {nbcfdcSchemes.map((scheme, index) => (
             <Card
               key={index}
-              className="shadow-card border border-primary/20 hover:border-primary/40 hover:shadow-lg transition-all duration-200 rounded-xl h-full flex flex-col bg-background/80"
+              className="shadow-card border border-primary/20 hover:border-primary/40 hover:shadow-lg transition-all duration-200 rounded-xl flex flex-col"
             >
-              <CardHeader className="pb-3 space-y-1">
-                <CardTitle className="text-lg leading-snug">
-                  {scheme.title}
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  {scheme.description}
-                </CardDescription>
+              <CardHeader>
+                <CardTitle>{scheme.title}</CardTitle>
+                <CardDescription>{scheme.description}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 pt-0 flex-1 flex flex-col">
-                <div className="space-y-3 flex-1">
+
+              <CardContent className="flex flex-col flex-1">
+                <div className="flex-1 space-y-3">
                   <div className="p-3 bg-primary/5 rounded-lg">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                      Max Loan Amount
-                    </div>
-                    <div className="text-base font-semibold text-primary mt-1">
+                    <div className="text-xs uppercase">Max Loan Amount</div>
+                    <div className="text-base font-semibold text-primary">
                       {scheme.amount}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="p-3 bg-muted rounded-lg">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Interest Rate
-                      </div>
-                      <div className="text-sm font-medium whitespace-pre-line mt-1">
+                      <div className="text-xs uppercase">Interest</div>
+                      <div className="text-sm whitespace-pre-line">
                         {scheme.interest}
                       </div>
                     </div>
 
                     <div className="p-3 bg-muted rounded-lg">
-                      <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                        Repayment / Notes
-                      </div>
-                      <div className="text-sm font-medium mt-1">
-                        {scheme.repayment}
-                      </div>
+                      <div className="text-xs uppercase">Repayment</div>
+                      <div className="text-sm">{scheme.repayment}</div>
                     </div>
                   </div>
                 </div>
 
                 <Button
                   className="w-full mt-2"
-                  size="sm"
                   onClick={() => handleCardApplyClick(scheme)}
                   disabled={!eligible}
                 >
@@ -286,59 +283,40 @@ const Benefits = () => {
         </div>
       </div>
 
-      {/* Apply Popup */}
+      {/* Popup */}
       {selectedScheme && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-background rounded-lg shadow-lg max-w-3xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b px-6 py-4">
+            <div className="flex justify-between items-center px-6 py-4 border-b">
               <h3 className="text-lg font-semibold text-primary">
                 Apply for {selectedScheme.title}
               </h3>
               <button
+                className="text-xl"
                 onClick={handleClosePopup}
-                className="text-muted-foreground hover:text-foreground text-xl leading-none"
               >
                 ×
               </button>
             </div>
 
             <div className="px-6 py-4 space-y-4">
-              {/* Scheme-wise detailed description */}
               <p className="text-sm text-muted-foreground whitespace-pre-line">
                 {selectedScheme.detail}
               </p>
 
-              <div className="bg-muted rounded-md p-3 text-xs space-y-1">
-                <div>
-                  <span className="font-semibold">Max Loan Amount: </span>
-                  {selectedScheme.amount}
-                </div>
-                <div className="whitespace-pre-line">
-                  <span className="font-semibold">Interest: </span>
-                  {selectedScheme.interest}
-                </div>
-                <div>
-                  <span className="font-semibold">Repayment: </span>
-                  {selectedScheme.repayment}
-                </div>
-              </div>
-
               <label className="flex items-start gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="mt-1"
                   checked={consent}
                   onChange={(e) => setConsent(e.target.checked)}
                 />
                 <span>
-                  I hereby give my consent to proceed with this NBCFDC loan
-                  application and authorize use of my information for eligibility
-                  and verification purposes.
+                  I give my consent to proceed with the loan application.
                 </span>
               </label>
             </div>
 
-            <div className="flex justify-end gap-3 border-t px-6 py-4">
+            <div className="px-6 py-4 flex justify-end gap-3 border-t">
               <Button variant="outline" onClick={handleClosePopup}>
                 Cancel
               </Button>
