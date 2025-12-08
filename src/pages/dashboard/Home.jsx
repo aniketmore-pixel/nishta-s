@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,7 +16,6 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { useEffect, useState } from "react";
 
 const Home = () => {
   // ---------- BASIC USER INFO ----------
@@ -24,7 +23,6 @@ const Home = () => {
 
   useEffect(() => {
     const aadhar_no = localStorage.getItem("aadhar_no");
-
     if (!aadhar_no) return;
 
     const fetchUser = async () => {
@@ -55,6 +53,9 @@ const Home = () => {
   const [hasModelValues, setHasModelValues] = useState(false);
   const [isLoadingScore, setIsLoadingScore] = useState(false);
 
+  // ---------- APPLICATIONS (for dynamic cards) ----------
+  const [applications, setApplications] = useState([]);
+
   // ---------- CASTE / ELIGIBILITY STATUS ----------
   const [userStatus, setUserStatus] = useState(null);
 
@@ -65,7 +66,7 @@ const Home = () => {
     maximumFractionDigits: 0,
   });
 
-  // ---------- FETCH APPLICATIONS (MODEL OUTPUTS) ----------
+  // ---------- FETCH APPLICATIONS (MODEL OUTPUTS + CARDS) ----------
   const fetchApplications = async (aadhaarNumber) => {
     try {
       setIsLoadingScore(true);
@@ -75,9 +76,9 @@ const Home = () => {
       const data = await res.json();
 
       if (data.success && Array.isArray(data.applications)) {
-        // TODO: adjust how you pick the "latest" application
-        // For now, taking the first one. You can sort by createdAt if needed.
-        const latestApp = data.applications[0];
+        setApplications(data.applications);
+
+        const latestApp = data.applications[0]; // adjust sorting if needed
 
         if (latestApp) {
           // TODO: adjust field names as per your backend response
@@ -121,6 +122,7 @@ const Home = () => {
         }
       } else {
         // No success or no applications
+        setApplications([]);
         setCreditScore(null);
         setSafeLoanAmount(null);
         setEstimatedIncome(null);
@@ -128,6 +130,7 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
+      setApplications([]);
       setCreditScore(null);
       setSafeLoanAmount(null);
       setEstimatedIncome(null);
@@ -168,13 +171,11 @@ const Home = () => {
   const normalized = Math.min(100, Math.max(0, creditScore ?? 0));
   const cibilScore = Math.round(300 + (normalized / 100) * 600); // 300–900
 
-  // Needle angle for semi-circle (-90° to +90°)
- const progress = (cibilScore - 300) / 600; // 0–1
-// Keep needle slightly inside the arc so it never hides at extremes
-const minAngle = -85;
-const maxAngle = 85;
-const angle = minAngle + progress * (maxAngle - minAngle);
-
+  // Needle angle for semi-circle (-90° to +90°) – back to your original
+  const progress = (cibilScore - 300) / 600; // 0–1
+  const minAngle = -85;
+  const maxAngle = 85;
+  const angle = minAngle + progress * (maxAngle - minAngle);
 
   // Risk band label
   let riskLabel = "High Risk";
@@ -190,11 +191,48 @@ const angle = minAngle + progress * (maxAngle - minAngle);
   const profileCompletion = userStatus?.verified ? 100 : 75;
 
   // ---------- UPDATE SCORE HANDLER ----------
+  // Only re-fetch from DB, do NOT recalculate model here
   const handleUpdateScore = () => {
-    // In future: call backend to refresh model, then refetch applications
     const aadhaarNumber = localStorage.getItem("aadhar_no");
     if (!aadhaarNumber) return;
     fetchApplications(aadhaarNumber);
+  };
+
+  // ---------- STATUS META FOR APPLICATION CARDS ----------
+  const getStatusMeta = (status) => {
+    const upper = (status || "").toUpperCase();
+
+    if (upper === "APPROVED") {
+      return {
+        label: "Approved",
+        badgeClass: "bg-success text-white",
+        progress: 100,
+      };
+    }
+    if (upper === "REJECTED" || upper === "DECLINED") {
+      return {
+        label: "Rejected",
+        badgeClass: "bg-red-500 text-white",
+        progress: 100,
+      };
+    }
+    return {
+      label: "Under Review",
+      badgeClass: "bg-accent/10 text-accent border-accent",
+      progress: 65,
+      outline: true,
+    };
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   return (
@@ -229,7 +267,7 @@ const angle = minAngle + progress * (maxAngle - minAngle);
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* CIBIL-style TRUE Semicircle Gauge */}
+            {/* CIBIL-style TRUE Semicircle Gauge – back to your original look */}
             <div className="flex flex-col items-center">
               {/* Outer Semicircle */}
               <div className="relative w-48 h-24 overflow-hidden">
@@ -246,12 +284,12 @@ const angle = minAngle + progress * (maxAngle - minAngle);
                 {/* White masking for inner ring */}
                 <div className="absolute w-40 h-40 rounded-full bg-white top-4 left-4"></div>
 
-                {/* Needle */}
+                {/* Needle (line) – attached to center, not hidden */}
                 <div
                   className="absolute w-1 bg-blue-600 h-20 origin-bottom"
                   style={{
                     left: "50%",
-                    bottom: "-2px",
+                    bottom: "-2px", // small negative so line starts just inside arc
                     transform: `translateX(-50%) rotate(${angle}deg)`,
                   }}
                 ></div>
@@ -340,7 +378,7 @@ const angle = minAngle + progress * (maxAngle - minAngle);
               </div>
             </div>
 
-            {/* Update Score button */}
+            {/* Update Score button – only re-fetches from DB */}
             <Button
               className="w-full"
               onClick={handleUpdateScore}
@@ -438,53 +476,60 @@ const angle = minAngle + progress * (maxAngle - minAngle);
               </Tooltip>
             )}
 
-            {/* Example loan applications (static demo) */}
-            <div className="p-4 rounded-lg border bg-card">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-medium">Loan Application</p>
-                  <p className="text-sm text-muted-foreground">
-                    Applied on 15 Sep 2025
-                  </p>
-                </div>
-                <Badge className="bg-success">Approved</Badge>
+            {/* ---------- DYNAMIC LOAN APPLICATION CARDS ---------- */}
+            {applications.length === 0 ? (
+              <div className="p-4 rounded-lg border bg-card text-sm text-muted-foreground">
+                You don&apos;t have any loan applications yet.
               </div>
-              <div className="flex items-center justify-between text-sm mb-3">
-                <span className="text-muted-foreground">
-                  Application ID: #NB2025001234
-                </span>
-                <span className="font-medium text-success">₹3,00,000</span>
-              </div>
-              <Progress value={100} className="h-2 mb-3" />
-              <p className="text-xs text-muted-foreground">
-                <strong>Approval Reason:</strong> Strong repayment history and
-                stable income source
-              </p>
-            </div>
+            ) : (
+              applications.map((app) => {
+                const meta = getStatusMeta(app.status);
+                const displayAmountRaw =
+                  app.loan_amount_approved ?? app.loan_amount_applied;
+                const displayAmountNumber = displayAmountRaw
+                  ? Number(displayAmountRaw)
+                  : null;
+                const displayAmount = displayAmountNumber
+                  ? currencyFormatter.format(displayAmountNumber)
+                  : "—";
 
-            <div className="p-4 rounded-lg border bg-card">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="font-medium">Loan Application</p>
-                  <p className="text-sm text-muted-foreground">
-                    Applied on 28 Sep 2025
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="bg-accent/10 text-accent border-accent"
-                >
-                  Under Review
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-sm mb-3">
-                <span className="text-muted-foreground">
-                  Application ID: #NB2025001567
-                </span>
-                <span className="font-medium">₹2,00,000</span>
-              </div>
-              <Progress value={65} className="h-2" />
-            </div>
+                return (
+                  <div
+                    key={app.loan_application_id}
+                    className="p-4 rounded-lg border bg-card"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-medium">
+                          {app.scheme || "Loan Application"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Applied on {formatDate(app.applied_on)}
+                        </p>
+                      </div>
+
+                      <Badge
+                        className={meta.outline ? `border ${meta.badgeClass}` : meta.badgeClass}
+                        variant={meta.outline ? "outline" : "default"}
+                      >
+                        {meta.label}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm mb-3">
+                      <span className="text-muted-foreground">
+                        Application ID: {app.loan_application_id}
+                      </span>
+                      <span className="font-medium">
+                        Loan Amount Applied : {displayAmount}
+                      </span>
+                    </div>
+
+                    <Progress value={meta.progress} className="h-2" />
+                  </div>
+                );
+              })
+            )}
 
             <Link to="/dashboard/track">
               <Button variant="outline" className="w-full">
