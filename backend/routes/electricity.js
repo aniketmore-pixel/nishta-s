@@ -13,6 +13,11 @@ router.post("/verify/electricity", upload.array("bills"), async (req, res) => {
   try {
     console.log("Files received:", req.files);
 
+    const { loan_application_id, aadhar_no } = req.body;
+
+    console.log("Loan ID:", loan_application_id);
+    console.log("Aadhar:", aadhar_no);
+
     const files = req.files;
     if (!files || files.length === 0) {
       return res.status(400).json({ ok: false, error: "No files uploaded" });
@@ -36,7 +41,7 @@ router.post("/verify/electricity", upload.array("bills"), async (req, res) => {
     const storedStats = await getElectricityStats(elecAccountNo);
 
     // Compare both
-    const comparison = compareStats(computedStats, storedStats, elecAccountNo);
+    const comparison = compareStats(computedStats, storedStats, elecAccountNo, loan_application_id, aadhar_no);
 
     return res.json({
       ok: true,

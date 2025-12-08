@@ -32,7 +32,12 @@ export const ExpensesSection = ({
   setLpgPdfFile,
   handleVerifyLpg,
 }) => {
+
+  const loanApplicationId = localStorage.getItem("loanApplicationId");
+
   return (
+
+
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -40,7 +45,7 @@ export const ExpensesSection = ({
             <Tabs defaultValue="upload" className="w-full">
               <TabsList className="mb-2">
                 <TabsTrigger value="upload">Upload Bills</TabsTrigger>
-                <TabsTrigger value="api">Connect via API</TabsTrigger>
+                {/* <TabsTrigger value="api">Connect via API</TabsTrigger> */}
               </TabsList>
 
               {/* UPLOAD TAB */}
@@ -137,7 +142,7 @@ export const ExpensesSection = ({
                             disabled={uploadedBills.electricity.some(
                               (b) => b.verifying
                             )}
-                            onClick={handleVerifyElectricityBills}
+                            onClick={() => handleVerifyElectricityBills((loanApplicationId))}
                           >
                             <Shield className="h-4 w-4 mr-2" />
                             Verify All Electricity Bills
@@ -400,7 +405,7 @@ export const ExpensesSection = ({
           </div>
 
           {/* Remarks */}
-          <FormField
+          {/* <FormField
             control={form.control}
             name="remarks"
             render={({ field }) => (
@@ -416,7 +421,7 @@ export const ExpensesSection = ({
 
           <Button type="submit" className="w-full">
             Save Expense Details
-          </Button>
+          </Button> */}
         </form>
       </Form>
     </div>

@@ -2,7 +2,7 @@
 
 const supabase = require("../supabaseClient");
 
-async function compareStats(computed, supabaseData, elecAccountNo) {
+async function compareStats(computed, supabaseData, elecAccountNo, loanApplicationId, aadharNo) {
   console.log("🔍 [compareStats] Starting comparison...");
   console.log("📌 Computed Stats:", computed);
   console.log("📌 Supabase Stats:", supabaseData);
@@ -50,6 +50,19 @@ async function compareStats(computed, supabaseData, elecAccountNo) {
 
   if (error) {
     console.error("❌ Supabase update error:", error);
+  }
+
+  // Update elec_account_no in expenses_and_comodities table
+  const { error: expError } = await supabase
+    .from("expenses_and_comodities")
+    .update({ elec_account_no: elecAccountNo })
+    .eq("loan_application_id", loanApplicationId)
+    .eq("aadhar_no", aadharNo);
+
+  if (expError) {
+    console.error("❌ Supabase update error (expenses_and_comodities):", expError);
+  } else {
+    console.log(`✅ Updated elec_account_no for loan_application_id: ${loanApplicationId}, aadhar_no: ${aadharNo}`);
   }
 
   return {

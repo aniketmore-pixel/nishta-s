@@ -34,8 +34,8 @@ import { LoanSection } from "@/components/apply-loan/LoanSection";
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
 const useToast = () => ({
-  toast: ({ title, description, variant }) => {
-    console.log(`[TOAST - ${variant || "default"}] ${title}: ${description}`);
+  toast: ({ title, description }) => {
+    alert(`${title}\n${description}`);
   },
 });
 
@@ -90,6 +90,9 @@ const loanApplicationSchema = z.object({
   purpose: z.string().min(10, "Please provide purpose (minimum 10 characters)"),
 });
 
+
+
+
 const enrolledSchemesSchema = z.object({
   enrolledMgnrega: z.enum(["Yes", "No"], {
     required_error: "Please select an option",
@@ -141,6 +144,15 @@ export const profileSections = [
 const ApplyLoan = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
+
+  // Toast state for mobile verification
+  const [mobileToast, setMobileToast] = useState({
+    show: false,
+    title: "",
+    description: "",
+    type: "", // "success" or "error"
+  });
+
 
   const rawSchemeQuery = searchParams.get("scheme");
   const decodedScheme = rawSchemeQuery
@@ -367,9 +379,8 @@ const ApplyLoan = () => {
       title: "Loan Application Submitted",
       description: `Your loan application for ₹${amount.toLocaleString(
         "en-IN"
-      )} over ${
-        tenure ? `${tenure} months` : "your selected tenure"
-      } has been submitted for review. Processing will begin shortly.`,
+      )} over ${tenure ? `${tenure} months` : "your selected tenure"
+        } has been submitted for review. Processing will begin shortly.`,
       variant: "success",
     });
   };
@@ -384,9 +395,8 @@ const ApplyLoan = () => {
       if (method === "digilocker") setDigilockerConnected(true);
       toast({
         title: "Aadhaar Verified Successfully",
-        description: `Your Aadhaar has been verified using ${
-          method === "blockchain" ? "blockchain" : "DigiLocker"
-        }.`,
+        description: `Your Aadhaar has been verified using ${method === "blockchain" ? "blockchain" : "DigiLocker"
+          }.`,
         variant: "success",
       });
     }, 2000);
@@ -455,6 +465,9 @@ const ApplyLoan = () => {
   };
 
   const handleVerifyElectricityBills = async () => {
+    const loanApplicationId = localStorage.getItem("loan_application_id");
+    const aadharNo = localStorage.getItem("aadhar_no");
+
     setUploadedBills((prev) => ({
       ...prev,
       electricity: prev.electricity.map((b) => ({ ...b, verifying: true })),
@@ -464,6 +477,9 @@ const ApplyLoan = () => {
     uploadedBills.electricity.forEach((bill) => {
       formData.append("bills", bill.files[0]);
     });
+
+    formData.append("loan_application_id", loanApplicationId);
+    formData.append("aadhar_no", aadharNo);
 
     try {
       const res = await fetch("http://localhost:5010/api/verify/electricity", {
@@ -475,7 +491,7 @@ const ApplyLoan = () => {
 
       setUploadedBills((prev) => ({
         ...prev,
-        electricity: prev.electricry.map((b, idx) => ({
+        electricity: prev.electricity.map((b, idx) => ({
           ...b,
           verifying: false,
           verified: data.verifiedBills[idx],
@@ -499,12 +515,14 @@ const ApplyLoan = () => {
       setMobileDetails((prev) => ({ ...prev, verifying: true }));
 
       const aadhar_no = localStorage.getItem("aadhar_no");
+      const loan_application_id = localStorage.getItem("loan_application_id"); // <-- get loan ID
 
       const res = await fetch("http://localhost:5010/api/mobile/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           aadhar_no,
+          loan_application_id, // <-- pass loan ID
           mobile_recharge_amt_avg: mobileDetails.mobile_recharge_amt_avg,
           mobile_recharge_freq_pm: mobileDetails.mobile_recharge_freq_pm,
           provider: mobileDetails.provider,
@@ -540,23 +558,94 @@ const ApplyLoan = () => {
           : "Mismatch found. Flag has been set to suspicious.",
         variant: data.match ? "success" : "destructive",
       });
+      
+
     } catch (err) {
       console.error(err);
-
       setMobileDetails((prev) => ({ ...prev, verifying: false }));
 
-      toast({
+      setMobileToast({
+        show: true,
         title: "Verification Error",
         description: "Unable to verify mobile data.",
-        variant: "destructive",
+        type: "error",
       });
     }
   };
 
+
+  // const handleVerifyLpg = async () => {
+  //   try {
+  //     const aadhar_no = localStorage.getItem("aadhar_no");
+  //     const loan_application_id = localStorage.getItem("loan_application_id");
+
+  //     if (!aadhar_no) {
+  //       toast({
+  //         title: "Aadhaar Missing",
+  //         description: "Aadhaar not found in localStorage.",
+  //         variant: "destructive",
+  //       });
+  //       return;
+  //     }
+
+  //     if (!loan_application_id) {
+  //       toast({
+  //         title: "Loan Application ID Missing",
+  //         description: "Loan application ID not found in localStorage.",
+  //         variant: "destructive",
+  //       });
+  //       return;
+  //     }
+
+  //     setLpgDetails((prev) => ({ ...prev, verifying: true }));
+
+  //     const res = await fetch("http://localhost:5010/api/lpg/verify", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         aadhar_no,
+  //         loan_application_id,
+  //         consumer_no: lpgDetails.consumer_no,
+  //         lpg_refills_3m: lpgDetails.lpg_refills_3m,
+  //         lpg_avg_cost: lpgDetails.lpg_avg_cost,
+  //         lpg_avg_refill_interval_days:
+  //           lpgDetails.lpg_avg_refill_interval_days,
+  //       }),
+  //     });
+
+  //     const data = await res.json();
+
+  //     setLpgDetails((prev) => ({
+  //       ...prev,
+  //       verifying: false,
+  //       verified: data.match,
+  //     }));
+
+  //     toast({
+  //       title: data.match ? "LPG Bill Verified" : "Suspicious LPG Data",
+  //       description: data.match
+  //         ? "Your LPG details match our records."
+  //         : "Mismatch found. Flag has been updated.",
+  //       variant: data.match ? "success" : "destructive",
+  //     });
+  //   } catch (error) {
+  //     console.error(error);
+
+  //     setLpgDetails((prev) => ({ ...prev, verifying: false }));
+
+  //     toast({
+  //       title: "Verification Error",
+  //       description: "Unable to verify LPG data.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
   const handleVerifyLpg = async () => {
     try {
-      const aadhar_no = localStorage.getItem("aadhar_no");
-
+      const aadhar_no = localStorage.getItem("aadhar_no")?.trim();
+      const loan_application_id = localStorage.getItem("loan_application_id")?.trim();
+  
       if (!aadhar_no) {
         toast({
           title: "Aadhaar Missing",
@@ -565,30 +654,41 @@ const ApplyLoan = () => {
         });
         return;
       }
-
+  
+      if (!loan_application_id) {
+        toast({
+          title: "Loan Application ID Missing",
+          description: "Loan Application ID not found in localStorage.",
+          variant: "destructive",
+        });
+        return;
+      }
+  
       setLpgDetails((prev) => ({ ...prev, verifying: true }));
-
+  
       const res = await fetch("http://localhost:5010/api/lpg/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           aadhar_no,
-          consumer_no: lpgDetails.consumer_no,
-          lpg_refills_3m: lpgDetails.lpg_refills_3m,
-          lpg_avg_cost: lpgDetails.lpg_avg_cost,
-          lpg_avg_refill_interval_days:
-            lpgDetails.lpg_avg_refill_interval_days,
+          loan_application_id,
+          consumer_no: String(lpgDetails.consumer_no).trim(),
+          lpg_refills_3m: Number(lpgDetails.lpg_refills_3m),
+          lpg_avg_cost: Number(lpgDetails.lpg_avg_cost),
+          lpg_avg_refill_interval_days: Number(
+            lpgDetails.lpg_avg_refill_interval_days
+          ),
         }),
       });
-
+  
       const data = await res.json();
-
+  
       setLpgDetails((prev) => ({
         ...prev,
         verifying: false,
         verified: data.match,
       }));
-
+  
       toast({
         title: data.match ? "LPG Bill Verified" : "Suspicious LPG Data",
         description: data.match
@@ -598,9 +698,8 @@ const ApplyLoan = () => {
       });
     } catch (error) {
       console.error(error);
-
       setLpgDetails((prev) => ({ ...prev, verifying: false }));
-
+  
       toast({
         title: "Verification Error",
         description: "Unable to verify LPG data.",
@@ -608,6 +707,7 @@ const ApplyLoan = () => {
       });
     }
   };
+  
 
   const handleDocumentUpload = (docType, file) => {
     if (!file) return;
@@ -786,7 +886,11 @@ const ApplyLoan = () => {
             )}
           </CardContent>
         </Card>
+
+        
       </div>
+
+      
     </div>
   );
 };
