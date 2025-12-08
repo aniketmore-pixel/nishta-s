@@ -4,6 +4,8 @@ const lpgRoutes = require("./routes/lpg.js");
 const eligibilityRoutes = require("./routes/eligibility.js");
 const applicationRoutes = require("./routes/applicationRoutes.js");
 const Income_And_Assetdetails_Route = require("./routes/Income_And_Assetdetails_Route.js");
+const bankDetailsRoute = require("./routes/Bank_Details_Route");
+const loanDetailsRoute = require("./routes/Loan_Details_Route");
 
 require("dotenv").config();
 const express = require("express");
@@ -362,6 +364,10 @@ app.use("/api", applicationRoutes);
 
 // 🔹 Use this exactly like you said:
 app.use("/api", Income_And_Assetdetails_Route);
+
+app.use("/api", bankDetailsRoute);
+
+app.use("/api", loanDetailsRoute);
 // ---------------------
 // Start Server
 // ---------------------

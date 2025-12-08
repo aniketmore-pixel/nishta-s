@@ -1,4 +1,6 @@
 // src/components/apply-loan/BankSection.jsx
+import { useEffect, useState } from "react";
+
 import {
   Form,
   FormControl,
@@ -13,9 +15,133 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 export const BankSection = ({ form, onSubmit }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🔹 Prefill bank details from backend (for refresh)
+  useEffect(() => {
+    const aadhar_no =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("aadhar_no")
+        : null;
+
+    const loanId =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("loan_application_id")
+        : null;
+
+    if (!aadhar_no || !loanId) {
+      console.log(
+        "ℹ️ No aadhar_no or loan_application_id in localStorage. Skipping bank prefill."
+      );
+      return;
+    }
+
+    const fetchBankDetails = async () => {
+      try {
+        console.log("🔵 Fetching existing bank_details for form prefill...");
+        const url = `http://localhost:5010/api/bank-details?aadhar_no=${encodeURIComponent(
+          aadhar_no
+        )}&loan_application_id=${encodeURIComponent(loanId)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        console.log("🟣 Existing bank_details API response:", data);
+
+        if (res.ok && data.success && data.record) {
+          const record = data.record;
+          const currentValues = form.getValues();
+
+          form.reset({
+            ...currentValues,
+            accountHolderName: record.account_holder_name || "",
+            bankName: record.bank_name || "",
+            accountNumber: record.account_no || "",
+            confirmAccountNumber: record.account_no || "",
+            ifscCode: record.ifsc_code || "",
+            branchName: record.branch_name || "",
+            upiId: record.upi_id || "",
+          });
+
+          console.log("✅ Bank form prefilled from backend");
+        } else {
+          console.log(
+            "ℹ️ No existing bank_details record found for this loan/application."
+          );
+        }
+      } catch (err) {
+        console.error("🔥 Failed to fetch existing bank_details:", err);
+      }
+    };
+
+    fetchBankDetails();
+  }, [form]);
+
+  // 🔹 Submit: send to backend so it can link to loan_application_id + aadhar_no
+  const handleSubmit = async (values) => {
+    setIsSubmitting(true);
+    try {
+      const aadhar_no =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("aadhar_no")
+          : null;
+
+      const loan_application_id =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("loan_application_id")
+          : null;
+
+      if (!aadhar_no || !loan_application_id) {
+        console.error(
+          "❌ Missing aadhar_no or loan_application_id in localStorage"
+        );
+      }
+
+      const payload = {
+        aadhar_no,
+        loan_application_id,
+        accountHolderName: values.accountHolderName,
+        bankName: values.bankName,
+        accountNumber: values.accountNumber,
+        ifscCode: values.ifscCode,
+        branchName: values.branchName,
+        upiId: values.upiId,
+      };
+
+      console.log("🔵 Sending payload to /api/bank-details:", payload);
+
+      const res = await fetch("http://localhost:5010/api/bank-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      console.log("🟣 Bank Details API response:", data);
+
+      if (res.ok && data.success) {
+        console.log("✅ Bank details saved successfully on backend");
+        // parent ApplyLoan will show toast + mark section completed
+        if (onSubmit) {
+          onSubmit(values);
+        }
+      } else {
+        console.error("❌ Error from /api/bank-details:", data);
+        // you can plug in your toast here if you want
+      }
+    } catch (err) {
+      console.error("🔥 Failed to save bank details:", err);
+      if (onSubmit) {
+        onSubmit(values);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="accountHolderName"
@@ -151,8 +277,8 @@ export const BankSection = ({ form, onSubmit }) => {
           )}
         />
 
-        <Button type="submit" className="w-full">
-          Save Bank Details
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Saving Bank Details..." : "Save Bank Details"}
         </Button>
       </form>
     </Form>

@@ -66,8 +66,67 @@ router.get("/income-asset/occupation/:aadhar_no", async (req, res) => {
 });
 
 /**
+ * 📥 Get saved Income & Asset Details for aadhar_no + loan_application_id
+ *    - Both are expected from frontend (localStorage)
+ */
+router.get("/income-asset", async (req, res) => {
+  const { aadhar_no, loan_application_id } = req.query;
+
+  console.log("🔵 [GET] /income-asset", { aadhar_no, loan_application_id });
+
+  if (!aadhar_no || !loan_application_id) {
+    return res.status(400).json({
+      success: false,
+      message: "aadhar_no and loan_application_id are required",
+    });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("income_asset")
+      .select(
+        "primary_income_source, monthly_income, annual_income, asset_count, estimated_asset_value, loan_application_id, aadhar_no"
+      )
+      .eq("aadhar_no", aadhar_no)
+      .eq("loan_application_id", loan_application_id)
+      .maybeSingle();
+
+    console.log("🟣 Supabase income_asset GET Response:");
+    console.log("➡️ Data:", data);
+    console.log("➡️ Error:", error);
+
+    if (error) {
+      console.error("🔥 Supabase Error (income_asset get):", error);
+      return res.status(500).json({
+        success: false,
+        message: "Database error while fetching income & asset details",
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "No income & asset details found for this loan/application.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      record: data,
+    });
+  } catch (err) {
+    console.error("🔥 INTERNAL ERROR fetching income & asset details:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+});
+
+/**
  * 🧾 Save / Update Income & Asset Details
- *  - Uses latest loan_application_id from track_application for that Aadhaar
+ *  - Uses loan_application_id from body if present
+ *  - Else falls back to latest loan_application_id from track_application
  *  - Upserts into income_asset (loan_application_id + aadhar_no)
  */
 router.post("/income-asset", async (req, res) => {
@@ -75,6 +134,7 @@ router.post("/income-asset", async (req, res) => {
 
   const {
     aadhar_no,
+    loan_application_id: clientLoanAppId, // from frontend/localStorage
     primaryIncomeSource,
     monthlyIncome,
     annualIncome,
@@ -90,39 +150,47 @@ router.post("/income-asset", async (req, res) => {
   }
 
   try {
-    // 1️⃣ Get latest loan_application_id from track_application
-    console.log("🟡 Fetching latest loan_application_id for Aadhaar:", aadhar_no);
+    // 1️⃣ Decide which loan_application_id to use
+    let loan_application_id = clientLoanAppId;
 
-    const { data: appData, error: appError } = await supabase
-      .from("track_application")
-      .select("loan_application_id, applied_on, aadhar_no")
-      .eq("aadhar_no", aadhar_no)
-      .order("applied_on", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    if (!loan_application_id) {
+      console.log(
+        "🟡 No loan_application_id in body. Fetching latest for Aadhaar:",
+        aadhar_no
+      );
 
-    console.log("🟣 Supabase track_application Response:");
-    console.log("➡️ Data:", appData);
-    console.log("➡️ Error:", appError);
+      const { data: appData, error: appError } = await supabase
+        .from("track_application")
+        .select("loan_application_id, aadhar_no")
+        .eq("aadhar_no", aadhar_no)
+        .order("applied_on", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (appError) {
-      console.error("🔥 Supabase Error (track_application):", appError);
-      return res.status(500).json({
-        success: false,
-        message: "Database error while fetching loan application",
-      });
+      console.log("🟣 Supabase track_application Response:");
+      console.log("➡️ Data:", appData);
+      console.log("➡️ Error:", appError);
+
+      if (appError) {
+        console.error("🔥 Supabase Error (track_application):", appError);
+        return res.status(500).json({
+          success: false,
+          message: "Database error while fetching loan application",
+        });
+      }
+
+      if (!appData || !appData.loan_application_id) {
+        console.log("⚠️ No loan application found for Aadhaar:", aadhar_no);
+        return res.status(400).json({
+          success: false,
+          message:
+            "No loan application found for this Aadhaar. Please apply for a loan first.",
+        });
+      }
+
+      loan_application_id = appData.loan_application_id;
     }
 
-    if (!appData || !appData.loan_application_id) {
-      console.log("⚠️ No loan application found for Aadhaar:", aadhar_no);
-      return res.status(400).json({
-        success: false,
-        message:
-          "No loan application found for this Aadhaar. Please apply for a loan first.",
-      });
-    }
-
-    const loan_application_id = appData.loan_application_id;
     console.log("✅ Using loan_application_id:", loan_application_id);
 
     // 2️⃣ Parse numeric values

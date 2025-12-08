@@ -1,4 +1,6 @@
 // src/components/apply-loan/LoanSection.jsx
+import { useEffect, useState } from "react";
+
 import {
   Form,
   FormControl,
@@ -23,9 +25,145 @@ export const LoanSection = ({
   showExpensesForLoan,
   selectedSchemeName,
 }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🔹 Prefill loan details from backend (for refresh)
+  useEffect(() => {
+    const aadhar_no =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("aadhar_no")
+        : null;
+
+    const loanId =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem("loan_application_id")
+        : null;
+
+    if (!aadhar_no || !loanId) {
+      console.log(
+        "ℹ️ No aadhar_no or loan_application_id in localStorage. Skipping loan prefill."
+      );
+      return;
+    }
+
+    const fetchLoanDetails = async () => {
+      try {
+        console.log("🔵 Fetching existing loan_details for form prefill...");
+        const url = `http://localhost:5010/api/loan-details?aadhar_no=${encodeURIComponent(
+          aadhar_no
+        )}&loan_application_id=${encodeURIComponent(loanId)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        console.log("🟣 Existing loan_details API response:", data);
+
+        if (res.ok && data.success && data.record) {
+          const record = data.record;
+          const currentValues = form.getValues();
+
+          const loanAmountStr =
+            record.desired_loan_amount !== null &&
+            record.desired_loan_amount !== undefined
+              ? String(record.desired_loan_amount)
+              : "";
+
+          const desiredTenureStr =
+            record.desired_tenure !== null &&
+            record.desired_tenure !== undefined
+              ? String(record.desired_tenure)
+              : "";
+
+          form.reset({
+            ...currentValues,
+            loanAmount: loanAmountStr,
+            desiredTenure: desiredTenureStr,
+            purpose: record.purpose_of_loan || "",
+          });
+
+          // update parent state so tip text behaves correctly
+          const parsedAmount = parseFloat(loanAmountStr) || 0;
+          setLoanAmount(parsedAmount);
+
+          console.log("✅ Loan form prefilled from backend");
+        } else {
+          console.log(
+            "ℹ️ No existing loan_details record found for this loan/application."
+          );
+        }
+      } catch (err) {
+        console.error("🔥 Failed to fetch existing loan_details:", err);
+      }
+    };
+
+    fetchLoanDetails();
+  }, [form, setLoanAmount]);
+
+  // 🔹 Submit: save to backend, then run parent onSubmit logic
+  const handleSubmit = async (values) => {
+    setIsSubmitting(true);
+    try {
+      const aadhar_no =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("aadhar_no")
+          : null;
+
+      const loan_application_id =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("loan_application_id")
+          : null;
+
+      if (!aadhar_no || !loan_application_id) {
+        console.error(
+          "❌ Missing aadhar_no or loan_application_id in localStorage"
+        );
+      }
+
+      const payload = {
+        aadhar_no,
+        loan_application_id,
+        loanAmount: values.loanAmount,
+        desiredTenure: values.desiredTenure,
+        purpose: values.purpose, // 👈 will be mapped to purpose_of_loan in backend
+      };
+
+      console.log("🔵 Sending payload to /api/loan-details:", payload);
+
+      const res = await fetch("http://localhost:5010/api/loan-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      console.log("🟣 Loan Details API response:", data);
+
+      if (res.ok && data.success) {
+        console.log("✅ Loan details saved successfully on backend");
+        // Now let parent ApplyLoan handle threshold logic & toasts
+        if (onSubmit) {
+          onSubmit(values);
+        }
+      } else {
+        console.error("❌ Error from /api/loan-details:", data);
+        // still calling onSubmit keeps your UX flow intact if you want
+        if (onSubmit) {
+          onSubmit(values);
+        }
+      }
+    } catch (err) {
+      console.error("🔥 Failed to save loan details:", err);
+      if (onSubmit) {
+        onSubmit(values);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
           <p className="text-sm font-medium text-primary mb-2">
             💰 Loan Eligibility Calculator
@@ -58,8 +196,8 @@ export const LoanSection = ({
               <p className="text-xs text-muted-foreground">
                 {loanAmount > LOAN_THRESHOLD ? (
                   <span className="text-accent font-medium">
-                    ⚠️ Amount above ₹{(LOAN_THRESHOLD / 1000).toFixed(0)}K - Additional
-                    details required
+                    ⚠️ Amount above ₹{(LOAN_THRESHOLD / 1000).toFixed(0)}K -
+                    Additional details required
                   </span>
                 ) : (
                   <span className="text-success font-medium">
@@ -163,16 +301,16 @@ export const LoanSection = ({
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-sm text-muted-foreground">
             💡 Tip: Make sure all previous profile sections are completed for
-            faster loan approval, especially when applying under a specific scheme
-            like{" "}
+            faster loan approval, especially when applying under a specific
+            scheme like{" "}
             {selectedSchemeName
               ? `"${selectedSchemeName}".`
               : "NBCFDC concessional schemes."}
           </p>
         </div>
 
-        <Button type="submit" className="w-full" size="lg">
-          Submit Loan Application
+        <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+          {isSubmitting ? "Submitting Loan Application..." : "Submit Loan Application"}
         </Button>
       </form>
     </Form>

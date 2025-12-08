@@ -157,7 +157,19 @@ const ApplyLoan = () => {
     : "Complete Your Profile 🚀";
 
   const [selectedSection, setSelectedSection] = useState("income");
-  const [completedSections, setCompletedSections] = useState([]);
+
+  // ✅ Persist completed sections across refresh
+  const [completedSections, setCompletedSections] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem("applyLoanCompletedSections");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to parse completedSections from localStorage", e);
+      return [];
+    }
+  });
+
   const { toast } = useToast();
 
   // Aadhaar / Digilocker / API state
@@ -277,9 +289,17 @@ const ApplyLoan = () => {
   /* ---------------------- HANDLERS ---------------------- */
 
   const markSectionCompleted = (id) => {
-    if (!completedSections.includes(id)) {
-      setCompletedSections((prev) => [...prev, id]);
-    }
+    setCompletedSections((prev) => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          "applyLoanCompletedSections",
+          JSON.stringify(updated)
+        );
+      }
+      return updated;
+    });
   };
 
   const onIncomeSubmit = (data) => {
@@ -451,11 +471,11 @@ const ApplyLoan = () => {
         body: formData,
       });
 
-        const data = await res.json();
+      const data = await res.json();
 
       setUploadedBills((prev) => ({
         ...prev,
-        electricity: prev.electricity.map((b, idx) => ({
+        electricity: prev.electricry.map((b, idx) => ({
           ...b,
           verifying: false,
           verified: data.verifiedBills[idx],

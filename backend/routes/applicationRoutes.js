@@ -123,6 +123,28 @@ router.post("/applications/apply", async (req, res) => {
     }
 
     /* -----------------------------
+   Insert → income_asset
+------------------------------ */
+const { error: incomeErr } = await supabase
+  .from("income_asset")
+  .insert([
+    {
+      loan_application_id,
+      aadhar_no,
+      primary_income_source: "NA",     // required field, cannot be null
+      monthly_income: null,
+      annual_income: null,
+      asset_count: 0,
+      estimated_asset_value: null
+    }
+  ]);
+
+if (incomeErr) {
+  console.error("❌ income_asset error:", incomeErr);
+}
+
+
+    /* -----------------------------
        2️⃣ Insert → apply_for_loan
     ------------------------------ */
     const { error: applyErr } = await supabase
