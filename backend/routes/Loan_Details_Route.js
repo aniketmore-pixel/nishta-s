@@ -66,6 +66,9 @@ router.get("/loan-details", async (req, res) => {
  * 🧾 Save / Update Loan Details
  *  - Uses loan_application_id + aadhar_no from frontend (localStorage)
  *  - Upserts into apply_for_loan (loan_application_id + aadhaar_no)
+ *  - 🔁 Also updates track_application:
+ *      - status = 'PENDING'
+ *      - loan_amount_applied / tenure_applied
  */
 router.post("/loan-details", async (req, res) => {
   console.log("🔵 [POST] /loan-details", req.body);
@@ -78,7 +81,13 @@ router.post("/loan-details", async (req, res) => {
     purpose, // 👈 frontend sends `purpose`
   } = req.body;
 
-  if (!aadhar_no || !loan_application_id || !loanAmount || !desiredTenure || !purpose) {
+  if (
+    !aadhar_no ||
+    !loan_application_id ||
+    !loanAmount ||
+    !desiredTenure ||
+    !purpose
+  ) {
     return res.status(400).json({
       success: false,
       message:
@@ -130,11 +139,34 @@ router.post("/loan-details", async (req, res) => {
       });
     }
 
-    console.log("✅ Loan details saved:", data);
+    // 🔔 NEW: Update track_application status to 'PENDING'
+    console.log("🟡 Updating track_application status to PENDING...");
+
+    const { data: trackData, error: trackError } = await supabase
+      .from("track_application")
+      .update({
+        status: "PENDING", // 👈 enum public.application_status should have 'PENDING'
+        loan_amount_applied: String(desired_loan_amount_num),
+        tenure_applied: desired_tenure_num,
+      })
+      .eq("loan_application_id", loan_application_id)
+      .eq("aadhar_no", aadhar_no)
+      .select();
+
+    console.log("🟣 Supabase track_application UPDATE Response:");
+    console.log("➡️ Data:", trackData);
+    console.log("➡️ Error:", trackError);
+
+    if (trackError) {
+      console.error("🔥 Supabase Error (track_application update):", trackError);
+      // We won't fail the whole request for this, but we log it
+    }
+
+    console.log("✅ Loan details saved and status set to PENDING");
 
     return res.status(200).json({
       success: true,
-      message: "Loan details saved successfully",
+      message: "Loan details saved successfully, application set to PENDING",
       loan_application_id,
       record: data,
     });
