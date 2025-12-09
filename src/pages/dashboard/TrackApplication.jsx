@@ -37,7 +37,9 @@ const mapBackendStatus = (status) => {
     case "REJECTED":
       return "Rejected";
     case "PENDING":
-    case "UNDER_REVIEW":
+      return "Pending";
+    case "MANUAL_REVIEW":
+      return "Manual Review";
     default:
       return "Under Review";
   }
@@ -75,6 +77,8 @@ const getStatusBadgeClasses = (status) => {
       return "bg-red-100 text-red-700 border border-red-200";
     case "Under Review":
       return "bg-amber-100 text-amber-700 border border-amber-200";
+    case "Manual Review":
+      return "bg-purple-100 text-purple-700 border border-purple-200";
     default:
       return "bg-muted text-muted-foreground";
   }
@@ -90,6 +94,7 @@ const getStatusIcon = (status) => {
   if (status === "Under Review") {
     return <Clock className="h-3 w-3 mr-1" />;
   }
+  if (status === "Manual Review") return <AlertCircle className="h-3 w-3 mr-1" />; // NEW
   return null;
 };
 
@@ -97,6 +102,7 @@ const getStatusProgress = (status) => {
   if (status === "Approved") return 100;
   if (status === "Rejected") return 100;
   if (status === "Under Review") return 60;
+  if (status === "Manual Review") return 50;
   return 30;
 };
 
@@ -384,6 +390,9 @@ const TrackApplication = () => {
                         "Your application has been rejected. See below for details."}
                       {app.status === "Under Review" &&
                         "Your application is being evaluated by the admin team."}
+                      {app.status === "Manual Review" && 
+  "Your application requires manual review. The admin team may contact you for additional information."}
+
                     </p>
                   </div>
                 </CardHeader>
